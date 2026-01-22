@@ -7,7 +7,7 @@
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-    <h2 id="welcome">載入中...</h2>
+    <h2 id="welcome">打怪開始...</h2>
     <p>請選擇當前任務：</p>
     <button onclick="sendTime('抽卡')">💻 抽卡</button>
     <button onclick="sendTime('選擇我的卡片')">☕ 選擇我的卡片</button>
@@ -15,7 +15,7 @@
     <script>
         async function main() {
             // 初始化 LIFF，填入你在後台申請的 LIFF ID
-            await liff.init({ liffId: "你的_LIFF_ID_填在這裡" }); 
+            await liff.init({ liffId: "2008942220-OJ5cm8o7" }); 
             if (liff.isLoggedIn()) {
                 const profile = await liff.getProfile();
                 document.getElementById('welcome').innerText = "嗨, " + profile.displayName;
