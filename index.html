@@ -1,39 +1,345 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>----------抽卡遊戲---------</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>羈絆之森 | 契約簽訂</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        :root { --primary: #4CAF50; --gold: #FFD700; --bg: #fcfbf5; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        
+        /* 頁面切換 */
+        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; }
+        .page.active { display: flex; opacity: 1; }
+
+        /* 載入中 */
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #555; }
+
+        /* 入口頁 (Landing) */
+        .landing-box { margin-top: 100px; text-align: center; }
+        .btn { padding: 15px 40px; font-size: 18px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-create { background: var(--primary); box-shadow: 0 4px 10px rgba(76,175,80,0.3); }
+        .btn-invite { background: #2196F3; }
+
+        /* 契約頁 (Contract) */
+        .contract-paper {
+            background: #fff8dc; border: 4px double #8b4513; padding: 20px; border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 90%; text-align: center; margin-top: 20px;
+            position: relative;
+        }
+        .triangle-container {
+            position: relative; width: 260px; height: 240px; margin: 30px auto;
+        }
+        /* 三個指紋位置: 頂部, 左下, 右下 */
+        .slot { position: absolute; width: 70px; height: 70px; border: 2px dashed #bcaaa4; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.5s; background: rgba(255,255,255,0.5); }
+        .slot.top { top: 0; left: 50%; transform: translateX(-50%); }
+        .slot.left { bottom: 0; left: 0; }
+        .slot.right { bottom: 0; right: 0; }
+        
+        .slot img { width: 40px; height: 40px; border-radius: 50%; margin-bottom: -10px; opacity: 0.5; }
+        .slot span { font-size: 10px; margin-top: 12px; color: #555; font-weight: bold; }
+        
+        /* 簽署後的特效 */
+        .slot.signed { border-color: var(--primary); background: rgba(76,175,80,0.2); box-shadow: 0 0 15px var(--primary); border-style: solid; }
+        .slot.signed img { opacity: 1; border: 2px solid var(--primary); }
+
+        /* 自己的指紋按鈕 */
+        #my-finger-btn {
+            width: 80px; height: 80px; background: radial-gradient(circle, #ff5252 0%, #d32f2f 100%);
+            border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 15px rgba(211,47,47,0.4);
+            color: white; font-weight: bold; display: flex; justify-content: center; align-items: center;
+            margin-top: 20px; user-select: none; cursor: pointer; position: relative;
+        }
+        #my-finger-btn.pressing { transform: scale(0.9); }
+        #my-finger-btn::after { content: "長按"; font-size: 14px; }
+        
+        /* 光效 */
+        @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
+        .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
+
+    </style>
 </head>
 <body>
-    <h2 id="welcome">打怪開始...</h2>
-    <p>請選擇當前任務：</p>
-    <button onclick="sendTime('抽卡')">💻 抽卡</button>
-    <button onclick="sendTime('選擇我的卡片')">☕ 選擇我的卡片</button>
+
+    <div id="loading">系統讀取中...</div>
+    <div class="effect-flash" id="flash-overlay"></div>
+
+    <div id="view-landing" class="page">
+        <h1 style="color:#555;">🌲 羈絆之森</h1>
+        <p>與夥伴共同簽署契約，<br>種下習慣的種子。</p>
+        <div class="landing-box">
+            <button class="btn btn-create" onclick="createTeam()">建立新契約</button>
+            <p id="invite-hint" style="font-size:12px; color:#888; margin-top:20px;">
+                如果你收到邀請連結，<br>請直接點擊連結進入。
+            </button>
+        </div>
+    </div>
+
+    <div id="view-contract" class="page">
+        <h2>共生契約書</h2>
+        <div class="contract-paper">
+            <p>契約編號: <span id="display-contract-id" style="font-weight:bold; color:#8b4513;">...</span></p>
+            
+            <div class="triangle-container">
+                <div class="slot top" id="slot-0"><span>等待中</span></div>
+                <div class="slot left" id="slot-1"><span>等待中</span></div>
+                <div class="slot right" id="slot-2"><span>等待中</span></div>
+                
+                <svg width="260" height="240" style="position:absolute; top:0; left:0; pointer-events:none; z-index:-1;">
+                    <line x1="130" y1="70" x2="35" y2="200" stroke="#bcaaa4" stroke-width="2" stroke-dasharray="5,5" />
+                    <line x1="130" y1="70" x2="225" y2="200" stroke="#bcaaa4" stroke-width="2" stroke-dasharray="5,5" />
+                    <line x1="35" y1="200" x2="225" y2="200" stroke="#bcaaa4" stroke-width="2" stroke-dasharray="5,5" />
+                </svg>
+            </div>
+
+            <p id="status-text">等待全員到齊...</p>
+        </div>
+
+        <div id="action-area" style="margin-top:20px; text-align:center;">
+            <button class="btn btn-invite" onclick="shareInvite()">邀請夥伴 (+)</button>
+            <div id="my-finger-btn" style="display:none;"></div>
+        </div>
+    </div>
 
     <script>
-        async function main() {
-            // 初始化 LIFF，填入你在後台申請的 LIFF ID
-            await liff.init({ liffId: "2008942220-OJ5cm8o7" }); 
-            if (liff.isLoggedIn()) {
-                const profile = await liff.getProfile();
-                document.getElementById('welcome').innerText = "嗨, " + profile.displayName;
+        // --- 設定區 ---
+        const LIFF_ID = "2008942220-OJ5cm8o7"; 
+        // 記得權限要開 ShareTargetPicker
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
+
+        // --- 狀態 ---
+        let userProfile = {};
+        let currentContractId = "";
+        let pollingTimer = null;
+
+        // --- 初始化 ---
+        window.onload = function() {
+            liff.init({ liffId: LIFF_ID }).then(() => {
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    startApp();
+                }
+            });
+        };
+
+        async function startApp() {
+            const profile = await liff.getProfile();
+            userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl };
+            
+            // 1. 檢查網址是否有邀請碼 ?contract_id=123456
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteId = urlParams.get('contract_id');
+
+            // 2. 登入後端，確認目前狀態
+            const loginData = await callApi("login", {});
+            
+            if (loginData.contractId) {
+                // A. 已經有隊伍 -> 直接進入契約頁
+                enterContractPage(loginData.contractId);
+            } else if (inviteId) {
+                // B. 沒隊伍 + 有邀請碼 -> 加入隊伍
+                await joinTeam(inviteId);
             } else {
-                liff.login(); // 引導登入
+                // C. 沒隊伍 + 沒邀請碼 -> 顯示首頁 (建立按鈕)
+                showPage('view-landing');
+                hideLoading();
             }
         }
 
-        function sendTime(task) {
-            // 把結果傳回 LINE 對話框
-            liff.sendMessages([{
-                type: 'text',
-                text: "我開始進行：" + task
-            }]).then(() => {
-                liff.closeWindow(); // 傳送完自動關閉
-            });
+        // --- 核心功能 ---
+
+        // 建立隊伍
+        async function createTeam() {
+            showLoading();
+            const res = await callApi("create_team", {});
+            if (res.status === "success") {
+                enterContractPage(res.contractId);
+            } else {
+                alert("建立失敗: " + res.message);
+                hideLoading();
+            }
         }
-        main();
+
+        // 加入隊伍
+        async function joinTeam(cid) {
+            showLoading();
+            const res = await callApi("join_team", { contractId: cid });
+            if (res.status === "success") {
+                enterContractPage(cid);
+            } else {
+                alert("加入失敗或隊伍已滿: " + res.message);
+                showPage('view-landing'); // 退回首頁
+                hideLoading();
+            }
+        }
+
+        // 進入契約頁面 (啟動輪詢)
+        function enterContractPage(cid) {
+            currentContractId = cid;
+            document.getElementById('display-contract-id').innerText = cid;
+            showPage('view-contract');
+            
+            // 立即更新一次
+            updateStatus();
+            // 每 5 秒更新一次狀態 (Polling)
+            pollingTimer = setInterval(updateStatus, 5000);
+        }
+
+        // 更新契約狀態 (顯示頭像與指紋)
+        async function updateStatus() {
+            const res = await callApi("get_status", { contractId: currentContractId });
+            if (res.status !== "success") return;
+
+            const members = res.members; // Array of {name, pic, signed, exists}
+            let iSigned = false;
+            let allPresent = true;
+
+            // 更新畫面上的三個圈圈
+            members.forEach((m, index) => {
+                const slot = document.getElementById(`slot-${index}`);
+                if (m.exists) {
+                    slot.innerHTML = `<img src="${m.pic || 'https://via.placeholder.com/40'}"><br><span>${m.name}</span>`;
+                    if (m.signed) {
+                        slot.classList.add('signed');
+                    } else {
+                        slot.classList.remove('signed');
+                    }
+                    
+                    // 檢查是不是我自己
+                    if (m.name === userProfile.displayName) { // 簡單比對，嚴謹應比對ID
+                        if (m.signed) iSigned = true;
+                    }
+                } else {
+                    slot.innerHTML = `<span>等待加入</span>`;
+                    slot.classList.remove('signed');
+                    allPresent = false;
+                }
+            });
+
+            // 狀態文字控制
+            const statusTxt = document.getElementById('status-text');
+            const fingerBtn = document.getElementById('my-finger-btn');
+            const inviteBtn = document.querySelector('.btn-invite');
+
+            if (res.is_active) {
+                statusTxt.innerText = "✨ 契約已正式生效！ ✨";
+                statusTxt.style.color = "#4CAF50";
+                statusTxt.style.fontWeight = "bold";
+                clearInterval(pollingTimer); // 停止輪詢
+                fingerBtn.style.display = 'none';
+                inviteBtn.style.display = 'none';
+                // 這裡可以跳轉到下一關 (種樹頁面)
+                setTimeout(() => alert("契約完成，準備進入羈絆之森..."), 1000);
+            } else if (!allPresent) {
+                statusTxt.innerText = "等待夥伴加入中 (分享連結)...";
+                inviteBtn.style.display = 'inline-block';
+                fingerBtn.style.display = 'none';
+            } else {
+                statusTxt.innerText = "全員到齊！請長按指紋簽署";
+                inviteBtn.style.display = 'none';
+                if (!iSigned) {
+                    fingerBtn.style.display = 'flex'; // 顯示指紋按鈕
+                } else {
+                    fingerBtn.style.display = 'none';
+                    statusTxt.innerText = "您已簽署，等待夥伴中...";
+                }
+            }
+            hideLoading();
+        }
+
+        // 分享邀請
+        function shareInvite() {
+            if (liff.isApiAvailable('shareTargetPicker')) {
+                // 建立帶有參數的連結
+                const inviteLink = `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`;
+                
+                liff.shareTargetPicker([
+                    {
+                        "type": "flex",
+                        "altText": "來自羈絆之森的邀請",
+                        "contents": {
+                            "type": "bubble",
+                            "body": {
+                                "type": "box",
+                                "layout": "vertical",
+                                "contents": [
+                                    { "type": "text", "text": "🌲 羈絆之森", "weight": "bold", "size": "xl", "color": "#4CAF50" },
+                                    { "type": "text", "text": "邀請你加入習慣養成契約！", "margin": "md" },
+                                    { "type": "text", "text": `契約代碼: ${currentContractId}`, "size": "xs", "color": "#aaaaaa", "margin": "sm" }
+                                ]
+                            },
+                            "footer": {
+                                "type": "box",
+                                "layout": "vertical",
+                                "contents": [
+                                    {
+                                        "type": "button",
+                                        "action": { "type": "uri", "label": "接受契約", "uri": inviteLink },
+                                        "style": "primary"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]).catch(err => alert("分享失敗，請手動複製連結"));
+            } else {
+                alert("請使用手機版 LINE 進行分享");
+            }
+        }
+
+        // 指紋長按邏輯
+        const fingerBtn = document.getElementById('my-finger-btn');
+        let pressTimer;
+
+        fingerBtn.addEventListener('mousedown', startPress);
+        fingerBtn.addEventListener('touchstart', startPress);
+        fingerBtn.addEventListener('mouseup', cancelPress);
+        fingerBtn.addEventListener('touchend', cancelPress);
+
+        function startPress(e) {
+            e.preventDefault();
+            fingerBtn.classList.add('pressing');
+            pressTimer = setTimeout(async () => {
+                // 長按 1.5 秒成功
+                document.getElementById('flash-overlay').style.animation = 'flash 0.5s'; // 特效
+                showLoading();
+                await callApi("sign_oath", { contractId: currentContractId });
+                updateStatus(); // 刷新
+            }, 1500);
+        }
+
+        function cancelPress() {
+            fingerBtn.classList.remove('pressing');
+            clearTimeout(pressTimer);
+        }
+
+        // --- API 工具 ---
+        async function callApi(action, payload) {
+            const body = { action: action, userId: userProfile.userId, displayName: userProfile.displayName, pictureUrl: userProfile.pictureUrl, ...payload };
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    mode: "cors", // 關鍵
+                    headers: { "Content-Type": "text/plain" }, // 避免 OPTIONS 預檢
+                    body: JSON.stringify(body)
+                });
+                return await res.json();
+            } catch (e) {
+                console.error(e);
+                return { status: "error", message: "連線錯誤" };
+            }
+        }
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+        function showLoading() { document.getElementById('loading').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+
     </script>
 </body>
 </html>
