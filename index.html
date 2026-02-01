@@ -3,255 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>羈絆之森 | 自我契約</title>
+    <title>羈絆之森 | 雙人養成</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #4CAF50; --bg: #fcfbf5; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        :root { --primary: #4CAF50; --bg: #fcfbf5; --brown: #8b4513; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; }
+        /* 頁面容器設定 (修正位置問題) */
+        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; box-sizing: border-box; opacity: 0; transition: opacity 0.5s; }
         .page.active { display: flex; opacity: 1; }
-        .hidden { display: none !important; }
+        
+        /* 讓契約頁面內容垂直置中偏上 */
+        #view-contract { justify-content: center; padding-bottom: 20vh; } 
+        /* 遊戲頁面則靠底對齊樹木 */
+        #view-game { justify-content: flex-end; }
 
-        /* 載入遮罩 */
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #555; }
+        /* 載入畫面 */
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #666; }
         .spinner { width: 30px; height: 30px; border: 4px solid #ddd; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;}
 
-        /* 按鈕 */
-        .btn { padding: 14px 30px; font-size: 16px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        /* 通用按鈕 */
+        .btn { padding: 12px 24px; font-size: 16px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
         .btn:active { transform: scale(0.95); }
-        .btn-create { background: var(--primary); }
+        .btn-green { background: var(--primary); }
+        .btn-blue { background: #2196F3; }
+        .btn-orange { background: #FF9800; }
 
-        /* 契約書 */
+        /* 契約書樣式 */
         .contract-paper {
-            background: #fff8dc; border: 3px solid #8b4513; padding: 30px 20px; border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 90%; max-width: 350px; text-align: center; margin-top: 40px;
-            display: flex; flex-direction: column; align-items: center;
+            background: #fff8dc; border: 3px solid var(--brown); padding: 25px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 85%; max-width: 350px; text-align: center;
+            position: relative;
         }
-
-        /* 單人頭像區 */
-        .solo-container { margin: 30px 0; transform: scale(1.1); }
-        .slot {
-            width: 90px; height: 90px; border: 3px dashed #bcaaa4; border-radius: 50%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: #fff; position: relative; transition: all 0.5s;
-        }
-        .slot img { width: 100%; height: 100%; border-radius: 50%; opacity: 0.5; object-fit: cover; }
-        .slot.signed { border-color: var(--primary); box-shadow: 0 0 20px var(--primary); border-style: solid; }
+        .duo-slots { display: flex; justify-content: space-around; margin: 30px 0; position: relative; }
+        .slot { width: 70px; height: 70px; border: 2px dashed #ccc; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; background: #fff; }
+        .slot img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; opacity: 0.4; }
+        .slot.signed { border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
         .slot.signed img { opacity: 1; }
         
         /* 指紋按鈕 */
-        #my-finger-btn {
-            width: 90px; height: 90px; background: radial-gradient(circle, #ff5252 0%, #d32f2f 100%);
+        #finger-btn {
+            width: 80px; height: 80px; background: radial-gradient(circle, #ff5252, #d32f2f);
             border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 15px rgba(211,47,47,0.4);
             color: white; font-weight: bold; display: flex; justify-content: center; align-items: center;
-            margin-top: 30px; user-select: none; cursor: pointer; animation: pulse 2s infinite;
+            margin: 20px auto 0; cursor: pointer; animation: pulse 2s infinite; user-select: none;
         }
-        #my-finger-btn::after { content: "長按"; font-size: 16px; }
-        #my-finger-btn.pressing { transform: scale(0.9); animation: none; }
+        #finger-btn::after { content: "長按"; }
+        #finger-btn.pressing { transform: scale(0.9); animation: none; }
+
+        /* 遊戲主畫面 */
+        .game-header { position: absolute; top: 20px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; }
+        .exp-bar { background: #eee; height: 10px; border-radius: 5px; width: 100px; overflow: hidden; }
+        .exp-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s; }
+        
+        .tree-area { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: flex-end; position: relative; padding-bottom: 80px; }
+        .tree { width: 150px; height: 200px; background: url('https://img.icons8.com/dusk/200/tree.png') no-repeat bottom center; background-size: contain; transition: transform 0.3s; position: relative;}
+        
+        /* 風鈴 */
+        .wind-chime { position: absolute; top: 20%; right: -20px; font-size: 30px; cursor: pointer; filter: drop-shadow(0 0 5px white); animation: swing 3s infinite ease-in-out; display: none; }
+        .wind-chime.has-msg::after { content: "!"; position: absolute; top: 0; right: 0; background: red; color: white; width: 15px; height: 15px; font-size: 10px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+
+        /* 底部控制列 */
+        .controls { width: 100%; background: white; padding: 20px; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-around; }
+        .ctl-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; font-size: 12px; color: #666; cursor: pointer; }
+        .ctl-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 5px; transition: transform 0.1s; }
+        .ctl-icon:active { transform: scale(0.9); }
+        
+        /* 彈窗 */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 80%; text-align: center; }
 
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
-        .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes swing { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(10deg); } }
+        @keyframes grow { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>系統連線中...</div>
-    </div>
-    <div class="effect-flash" id="flash-overlay"></div>
+    <div id="loading"><div class="spinner"></div><div>讀取森林中...</div></div>
 
-    <div id="view-landing" class="page">
-        <h1 style="color:#4a4a4a; margin-top: 80px;">🌲 羈絆之森</h1>
-        <p style="color:#666; text-align:center; line-height:1.6;">
-            與自己立下約定<br>種下習慣的種子
-        </p>
-        <div style="width:100%; text-align:center; margin-top:30px;">
-            <button class="btn btn-create" onclick="createTeam()">建立自我契約</button>
-        </div>
+    <div id="view-landing" class="page" style="justify-content: center;">
+        <h1 style="color:var(--brown);">🌲 羈絆之森</h1>
+        <p style="color:#666;">雙人習慣養成契約</p>
+        <button class="btn btn-green" onclick="createTeam()">建立新契約</button>
+        <div id="landing-msg" style="margin-top:20px; color:#aaa; font-size:12px;"></div>
     </div>
 
     <div id="view-contract" class="page">
-        <h2 style="color:#5d4037;">自我契約書</h2>
+        <h2 style="color:var(--brown);">共生契約書</h2>
         <div class="contract-paper">
             <div style="font-size:12px; color:#888;">契約編號</div>
-            <div id="display-contract-id" style="font-weight:bold; color:#8b4513; font-size:20px; letter-spacing: 1px;">...</div>
+            <div id="cid-display" style="font-weight:bold; font-size:20px; letter-spacing:1px; color:var(--brown);">...</div>
             
-            <div class="solo-container">
-                <div class="slot" id="slot-0">
-                    <img src="" alt="Me">
-                </div>
-                <div style="margin-top:10px; font-weight:bold; color:#666;" id="name-0"></div>
-            </div>
+            <div class="duo-slots">
+                <div class="slot" id="slot-0"><img src="" alt="A"></div> <div class="slot" id="slot-1"><img src="" alt="B"></div> </div>
+            
+            <p id="contract-status" style="color:#666; font-size:14px;">等待夥伴中...</p>
+            <button class="btn btn-blue" id="btn-invite" onclick="invitePartner()">邀請夥伴</button>
+            <div id="finger-btn" style="display:none;"></div>
+        </div>
+    </div>
 
-            <p id="status-text" style="color:#888; font-size:14px;">準備簽署...</p>
+    <div id="view-game" class="page">
+        <div class="game-header">
+            <div>
+                <span style="font-size:12px; color:#666;">Lv. <span id="tree-lvl">1</span></span>
+                <div class="exp-bar"><div class="exp-fill" id="exp-fill"></div></div>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <img id="avatar-me" src="" style="width:30px; height:30px; border-radius:50%; border:2px solid #ddd;">
+                <img id="avatar-partner" src="" style="width:30px; height:30px; border-radius:50%; border:2px solid #ddd;">
+            </div>
         </div>
 
-        <div id="action-area" style="margin-top:30px; text-align:center; width:100%;">
-            <div id="my-finger-btn" class="hidden"></div>
+        <div class="tree-area">
+            <div class="tree" id="the-tree">
+                <div class="wind-chime" id="wind-chime" onclick="readMessage()">🎐</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="ctl-btn" onclick="doCheckin()">
+                <div class="ctl-icon" style="background:#e3f2fd; color:#2196F3;">💧</div>
+                打卡
+            </button>
+            <button class="ctl-btn" onclick="openMsgModal()">
+                <div class="ctl-icon" style="background:#fce4ec; color:#E91E63;">📝</div>
+                留言
+            </button>
+            <button class="ctl-btn" onclick="sendSunlight()">
+                <div class="ctl-icon" style="background:#fff3e0; color:#FF9800;">☀️</div>
+                提醒
+            </button>
+        </div>
+    </div>
+
+    <div id="msg-modal" class="modal" onclick="this.style.display='none'">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3>寫給夥伴的話</h3>
+            <textarea id="msg-input" style="width:100%; height:80px; margin:10px 0; border:1px solid #ddd; border-radius:5px; padding:5px;"></textarea>
+            <button class="btn btn-green" onclick="sendMessage()">掛上風鈴</button>
         </div>
     </div>
 
     <script>
-        // ==============================
-        // 參數設定 (已替換)
-        // ==============================
-        const LIFF_ID = "2008942220-OJ5cm8o7"; 
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
-        // ==============================
+        // 設定區
+        const LIFF_ID = "您的_LIFF_ID"; 
+        const GAS_URL = "您的_GAS_WEB_APP_URL";
 
-        let userProfile = {};
-        let currentContractId = "";
-        let pollingTimer = null;
+        let user = {};
+        let contractId = "";
+        let polling = null;
 
-        window.onload = function() {
+        window.onload = () => {
             liff.init({ liffId: LIFF_ID }).then(() => {
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                } else {
-                    startApp();
-                }
-            }).catch(err => {
-                alert("LIFF 初始化失敗: " + err);
-                hideLoading();
+                if(!liff.isLoggedIn()) liff.login();
+                else startApp();
             });
         };
 
         async function startApp() {
-            try {
-                const profile = await liff.getProfile();
-                userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl };
-                
-                // 呼叫後端登入
-                const loginData = await callApi("login", {});
-                
-                if (loginData.contractId) {
-                    // 已有存檔 -> 進入契約頁
-                    enterContractPage(loginData.contractId);
-                } else {
-                    // 無存檔 -> 首頁
-                    showPage('view-landing');
-                    hideLoading();
-                }
-            } catch (err) {
-                alert("錯誤: " + err);
-            }
-        }
-
-        async function createTeam() {
-            showLoading();
-            // 呼叫建立隊伍 (現在後端邏輯是單人)
-            const res = await callApi("create_team", {});
+            const profile = await liff.getProfile();
+            user = { id: profile.userId, name: profile.displayName, pic: profile.pictureUrl };
             
-            // 除錯用：如果後端回傳物件結構有問題，這裡會顯示
-            if (res.status === "success") {
-                enterContractPage(res.contractId);
+            // 檢查 URL 是否有邀請碼
+            const params = new URLSearchParams(window.location.search);
+            const inviteCid = params.get('cid');
+
+            const res = await api("login", {});
+            
+            if (res.contractId) {
+                contractId = res.contractId;
+                // 有契約，檢查狀態
+                checkStatus();
+            } else if (inviteCid) {
+                // 無契約 + 有邀請碼 -> 加入
+                await api("join_team", { contractId: inviteCid });
+                contractId = inviteCid;
+                checkStatus();
             } else {
-                alert("建立失敗: " + JSON.stringify(res)); // 印出完整錯誤訊息
+                // 無契約 -> 顯示首頁
+                show("view-landing");
                 hideLoading();
             }
         }
 
-        function enterContractPage(cid) {
-            currentContractId = cid;
-            document.getElementById('display-contract-id').innerText = cid;
-            showPage('view-contract');
-            
-            updateStatus();
-            pollingTimer = setInterval(updateStatus, 3000);
-        }
-
-        async function updateStatus() {
-            const res = await callApi("get_status", { contractId: currentContractId });
+        // 核心狀態檢查 (決定顯示契約頁還是遊戲頁)
+        async function checkStatus() {
+            const res = await api("get_data", { contractId });
             if (res.status !== "success") return;
 
-            const me = res.members[0]; // 單人模式只有一個成員
-            
-            // 更新 UI
-            const slot = document.getElementById('slot-0');
-            const img = slot.querySelector('img');
-            const nameDiv = document.getElementById('name-0');
-            
-            img.src = me.pic || "https://placehold.co/90x90/png?text=Me";
-            nameDiv.innerText = me.name;
-            
-            if (me.signed) {
-                slot.classList.add('signed');
-                img.style.opacity = "1";
-            } else {
-                slot.classList.remove('signed');
-                img.style.opacity = "0.5";
-            }
-
-            const statusTxt = document.getElementById('status-text');
-            const fingerBtn = document.getElementById('my-finger-btn');
-
             if (res.is_active) {
-                statusTxt.innerText = "✨ 契約已生效，旅程開始 ✨";
-                statusTxt.style.color = "#4CAF50";
-                clearInterval(pollingTimer);
-                fingerBtn.classList.add('hidden');
-                setTimeout(() => alert("恭喜！自我契約成立！(接下來可進入遊戲主畫面)"), 1000);
+                enterGame(res);
             } else {
-                if (!me.signed) {
-                    statusTxt.innerText = "請長按指紋，許下承諾";
-                    fingerBtn.classList.remove('hidden');
-                } else {
-                    statusTxt.innerText = "處理中...";
-                    fingerBtn.classList.add('hidden');
-                }
+                renderContract(res.members);
             }
             hideLoading();
         }
 
-        // 指紋長按邏輯
-        const fingerBtn = document.getElementById('my-finger-btn');
-        let pressTimer;
-        
-        const startPress = (e) => {
-            e.preventDefault();
-            fingerBtn.classList.add('pressing');
-            pressTimer = setTimeout(async () => {
-                document.getElementById('flash-overlay').style.animation = 'flash 0.5s';
-                showLoading();
-                await callApi("sign_oath", { contractId: currentContractId });
-                updateStatus();
-            }, 1000); // 改為 1 秒即可
-        };
-        const cancelPress = () => {
-            fingerBtn.classList.remove('pressing');
-            clearTimeout(pressTimer);
-        };
+        // 渲染契約頁面
+        function renderContract(members) {
+            show("view-contract");
+            document.getElementById('cid-display').innerText = contractId;
+            
+            const me = members.find(m => m.id === user.id) || {};
+            const partner = members.find(m => m.id !== user.id);
+            
+            // 渲染頭像
+            document.getElementById('slot-0').innerHTML = `<img src="${user.pic}">`;
+            if (partner) {
+                document.getElementById('slot-1').innerHTML = `<img src="${partner.pic}">`;
+                document.getElementById('btn-invite').style.display = 'none';
+            } else {
+                document.getElementById('slot-1').innerHTML = `<span>?</span>`;
+                document.getElementById('btn-invite').style.display = 'inline-block';
+            }
 
-        fingerBtn.addEventListener('mousedown', startPress);
-        fingerBtn.addEventListener('touchstart', startPress);
-        fingerBtn.addEventListener('mouseup', cancelPress);
-        fingerBtn.addEventListener('touchend', cancelPress);
+            // 指紋邏輯
+            const fBtn = document.getElementById('finger-btn');
+            const status = document.getElementById('contract-status');
+            
+            if (me.signed) {
+                document.getElementById('slot-0').classList.add('signed');
+                fBtn.style.display = 'none';
+                status.innerText = partner ? (partner.signed ? "處理中..." : "等待夥伴簽署...") : "等待夥伴加入...";
+            } else {
+                if (partner) {
+                    status.innerText = "夥伴已就位，請簽署契約";
+                    fBtn.style.display = 'flex';
+                } else {
+                    status.innerText = "請先邀請夥伴";
+                    fBtn.style.display = 'none';
+                }
+            }
+            
+            // 如果還沒開始，繼續輪詢
+            if (!polling) polling = setInterval(checkStatus, 3000);
+        }
 
-        // API 工具
-        async function callApi(action, payload) {
-            const body = { action, userId: userProfile.userId, displayName: userProfile.displayName, pictureUrl: userProfile.pictureUrl, ...payload };
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST", mode: "cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify(body)
-                });
-                return await res.json();
-            } catch (e) { 
-                console.error(e); 
-                // 回傳錯誤結構以防 crash
-                return { status: "error", message: "連線錯誤: " + e }; 
+        // 渲染遊戲頁面
+        function enterGame(data) {
+            if (polling) clearInterval(polling);
+            show("view-game");
+            
+            // 經驗值與等級
+            const exp = parseInt(data.tree_exp);
+            const level = Math.floor(exp / 100) + 1;
+            document.getElementById('tree-lvl').innerText = level;
+            document.getElementById('exp-fill').style.width = (exp % 100) + "%";
+            
+            // 樹的大小隨等級成長
+            let scale = 1 + (level * 0.05);
+            document.getElementById('the-tree').style.transform = `scale(${scale})`;
+
+            // 頭像狀態 (打卡顯示綠框)
+            const me = data.members.find(m => m.id === user.id);
+            const partner = data.members.find(m => m.id !== user.id);
+            
+            const setAvatar = (elId, mem) => {
+                const el = document.getElementById(elId);
+                el.src = mem.pic;
+                el.style.borderColor = mem.checked_in ? "#4CAF50" : "#ddd";
+                el.style.opacity = mem.checked_in ? "1" : "0.6";
+            };
+            setAvatar('avatar-me', me);
+            if(partner) setAvatar('avatar-partner', partner);
+
+            // 風鈴 (未讀訊息)
+            const chime = document.getElementById('wind-chime');
+            chime.style.display = 'block';
+            if (data.has_msg) chime.classList.add('has-msg');
+            else chime.classList.remove('has-msg');
+
+            // 全勤獎勵
+            if (data.today_all_clear) {
+               // 可以在這裡加全勤特效
+               console.log("全員已打卡!"); 
             }
         }
 
-        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
-        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+        // --- 動作函數 ---
 
+        async function createTeam() {
+            showLoading();
+            const res = await api("create_team", {});
+            contractId = res.contractId;
+            checkStatus();
+        }
+
+        function invitePartner() {
+            if (liff.isApiAvailable('shareTargetPicker')) {
+                liff.shareTargetPicker([{
+                    "type": "flex",
+                    "altText": "羈絆之森邀請",
+                    "contents": {
+                        "type": "bubble",
+                        "body": {
+                            "type": "box", "layout": "vertical",
+                            "contents": [
+                                { "type": "text", "text": "🌲 羈絆之森", "weight": "bold", "color": "#8b4513" },
+                                { "type": "text", "text": "邀請你成為我的契約夥伴", "margin": "md" }
+                            ]
+                        },
+                        "footer": {
+                            "type": "box", "layout": "vertical",
+                            "contents": [{ "type": "button", "action": { "type": "uri", "label": "接受契約", "uri": `https://liff.line.me/${LIFF_ID}?cid=${contractId}` }, "style": "primary" }]
+                        }
+                    }
+                }]);
+            }
+        }
+
+        // 指紋長按
+        const fBtn = document.getElementById('finger-btn');
+        let timer;
+        fBtn.onmousedown = fBtn.ontouchstart = (e) => {
+            e.preventDefault();
+            fBtn.classList.add('pressing');
+            timer = setTimeout(async () => {
+                showLoading();
+                await api("sign_oath", { contractId });
+                checkStatus();
+            }, 1000);
+        };
+        fBtn.onmouseup = fBtn.ontouchend = () => {
+            fBtn.classList.remove('pressing');
+            clearTimeout(timer);
+        };
+
+        // 打卡
+        async function doCheckin() {
+            showLoading();
+            const res = await api("checkin", { contractId });
+            if (res.status === "success") {
+                alert(res.bonus ? "全員達成！獲得額外獎勵 🍎" : "打卡成功！");
+                checkStatus(); // 刷新
+            } else {
+                alert(res.message);
+                hideLoading();
+            }
+        }
+
+        // 留言相關
+        function openMsgModal() { document.getElementById('msg-modal').style.display = 'flex'; }
+        async function sendMessage() {
+            const msg = document.getElementById('msg-input').value;
+            if(!msg) return;
+            document.getElementById('msg-modal').style.display = 'none';
+            showLoading();
+            await api("send_msg", { contractId, message: msg });
+            alert("風鈴已掛上");
+            hideLoading();
+        }
+        async function readMessage() {
+            const chime = document.getElementById('wind-chime');
+            if(!chime.classList.contains('has-msg')) {
+                alert("目前沒有新留言喔");
+                return;
+            }
+            showLoading();
+            const res = await api("read_msg", { contractId });
+            alert("夥伴說：\n" + res.message);
+            chime.classList.remove('has-msg');
+            hideLoading();
+        }
+
+        // 提醒 (陽光)
+        function sendSunlight() {
+            if (liff.isApiAvailable('shareTargetPicker')) {
+                liff.shareTargetPicker([{
+                    "type": "flex", "altText": "夥伴傳送了陽光",
+                    "contents": {
+                        "type": "bubble", "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "☀️ 夥伴送來了陽光", "weight": "bold" }, { "type": "text", "text": "記得回來澆水打卡喔！" }] },
+                        "footer": { "type": "box", "layout": "vertical", "contents": [{ "type": "button", "action": { "type": "uri", "label": "前往森林", "uri": `https://liff.line.me/${LIFF_ID}` }, "style": "primary" }] }
+                    }
+                }]);
+            }
+        }
+
+        // API
+        async function api(act, data) {
+            const body = { action: act, userId: user.id, displayName: user.name, pictureUrl: user.pic, ...data };
+            try {
+                const r = await fetch(GAS_URL, { method: "POST", mode: "cors", headers: {"Content-Type": "text/plain"}, body: JSON.stringify(body) });
+                return await r.json();
+            } catch(e) { alert("Error: "+e); return {status:"error"}; }
+        }
+
+        function show(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function showLoading() { document.getElementById('loading').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading').style.display = 'none'; }
     </script>
 </body>
 </html>
