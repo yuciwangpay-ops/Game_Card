@@ -1,360 +1,39 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>羈絆之森 | 雙人契約</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>----------抽卡遊戲---------</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        :root { --primary: #4CAF50; --gold: #FFD700; --bg: #fcfbf5; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        
-        /* 通用 */
-        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; }
-        .page.active { display: flex; opacity: 1; }
-        .hidden { display: none !important; }
-
-        /* 載入遮罩 */
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 999; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #555; flex-direction: column; gap: 10px; }
-        .spinner { width: 30px; height: 30px; border: 4px solid #ddd; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-
-        /* 按鈕樣式 */
-        .btn { padding: 14px 30px; font-size: 16px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; transition: transform 0.1s; width: 80%; max-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.95); }
-        .btn-create { background: var(--primary); }
-        .btn-invite { background: #2196F3; }
-
-        /* 契約書樣式 */
-        .contract-paper {
-            background: #fff8dc; border: 3px solid #8b4513; padding: 20px 10px; border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 90%; max-width: 400px; text-align: center; margin-top: 30px;
-            position: relative; display: flex; flex-direction: column; align-items: center;
-        }
-
-        /* 雙人指紋佈局 */
-        .duo-container {
-            display: flex; justify-content: space-around; align-items: center;
-            width: 100%; margin: 30px 0; position: relative;
-        }
-        /* 連接線 */
-        .connector-line {
-            position: absolute; top: 50%; left: 20%; width: 60%; height: 2px;
-            background: #bcaaa4; z-index: 0; transform: translateY(-50%);
-            border-top: 2px dashed #bcaaa4; background: transparent;
-        }
-
-        .slot {
-            width: 70px; height: 70px; border: 2px dashed #bcaaa4; border-radius: 50%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: #fff; z-index: 1; position: relative; transition: all 0.5s;
-        }
-        .slot img { width: 100%; height: 100%; border-radius: 50%; opacity: 0.4; object-fit: cover; }
-        .slot.signed { border-color: var(--primary); box-shadow: 0 0 15px var(--primary); border-style: solid; }
-        .slot.signed img { opacity: 1; }
-        
-        .name-tag { position: absolute; bottom: -25px; font-size: 12px; color: #666; width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* 指紋按鈕 */
-        #my-finger-btn {
-            width: 80px; height: 80px; background: radial-gradient(circle, #ff5252 0%, #d32f2f 100%);
-            border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 15px rgba(211,47,47,0.4);
-            color: white; font-weight: bold; display: flex; justify-content: center; align-items: center;
-            margin-top: 20px; user-select: none; cursor: pointer; position: relative; animation: pulse 2s infinite;
-        }
-        #my-finger-btn::after { content: "長按"; font-size: 14px; }
-        #my-finger-btn.pressing { transform: scale(0.9); animation: none; }
-
-        /* 特效 */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
-        .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
-
-        .status-msg { margin-top: 10px; font-size: 14px; color: #888; font-weight: 500; min-height: 20px; }
-
-    </style>
 </head>
 <body>
-
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>讀取中...</div>
-    </div>
-    <div class="effect-flash" id="flash-overlay"></div>
-
-    <div id="view-landing" class="page">
-        <h1 style="color:#4a4a4a; margin-top: 80px;">🌲 羈絆之森</h1>
-        <p style="color:#666; text-align:center; line-height:1.6;">
-            與唯一的夥伴建立契約<br>共同種下希望的種子
-        </p>
-        <div style="width:100%; text-align:center; margin-top:30px;">
-            <button class="btn btn-create" onclick="createTeam()">建立新契約</button>
-            <p id="invite-hint" style="font-size:12px; color:#999; margin-top:20px;">
-                (若有邀請連結，請直接點擊連結進入)
-            </button>
-        </div>
-    </div>
-
-    <div id="view-contract" class="page">
-        <h2 style="color:#5d4037;">共生契約書</h2>
-        <div class="contract-paper">
-            <div style="font-size:12px; color:#888;">契約編號</div>
-            <div id="display-contract-id" style="font-weight:bold; color:#8b4513; font-size:24px; letter-spacing: 2px;">...</div>
-            
-            <div class="duo-container">
-                <div class="connector-line"></div>
-                
-                <div class="slot" id="slot-0">
-                    <img src="" alt="A">
-                    <div class="name-tag" id="name-0">等待中...</div>
-                </div>
-
-                <div class="slot" id="slot-1">
-                    <img src="" alt="B">
-                    <div class="name-tag" id="name-1">等待中...</div>
-                </div>
-            </div>
-
-            <p id="status-text" class="status-msg">讀取狀態中...</p>
-        </div>
-
-        <div id="action-area" style="margin-top:40px; text-align:center; width:100%;">
-            <button class="btn btn-invite hidden" id="btn-invite" onclick="shareInvite()">邀請夥伴 (+)</button>
-            <div id="my-finger-btn" class="hidden"></div>
-            <p id="wait-msg" class="hidden" style="color:#aaa;">您已簽署，等待對方中...</p>
-        </div>
-    </div>
+    <h2 id="welcome">打怪開始...</h2>
+    <p>請選擇當前任務：</p>
+    <button onclick="sendTime('抽卡')">💻 抽卡</button>
+    <button onclick="sendTime('選擇我的卡片')">☕ 選擇我的卡片</button>
 
     <script>
-        // ==============================
-        // 請務必修改以下兩行設定
-        // ==============================
-        const LIFF_ID = "2008942220-OJ5cm8o7"; 
-        // 記得權限要開 ShareTargetPicker
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
-        // ==============================
-
-        let userProfile = {};
-        let currentContractId = "";
-        let pollingTimer = null;
-
-        // 初始化
-        window.onload = function() {
-            liff.init({ liffId: LIFF_ID }).then(() => {
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                } else {
-                    startApp();
-                }
-            }).catch(err => {
-                alert("LIFF Init Failed: " + err);
-                hideLoading();
-            });
-        };
-
-        async function startApp() {
-            try {
+        async function main() {
+            // 初始化 LIFF，填入你在後台申請的 LIFF ID
+            await liff.init({ liffId: "2008942220-OJ5cm8o7" }); 
+            if (liff.isLoggedIn()) {
                 const profile = await liff.getProfile();
-                userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl };
-                
-                // 檢查 URL 參數
-                const urlParams = new URLSearchParams(window.location.search);
-                const inviteId = urlParams.get('contract_id');
-
-                // 呼叫後端登入
-                const loginData = await callApi("login", {});
-                
-                if (loginData.contractId) {
-                    // 已有隊伍 -> 進入契約頁
-                    enterContractPage(loginData.contractId);
-                } else if (inviteId) {
-                    // 無隊伍 + 有邀請 -> 加入隊伍
-                    await joinTeam(inviteId);
-                } else {
-                    // 無隊伍 -> 首頁
-                    showPage('view-landing');
-                    hideLoading();
-                }
-            } catch (err) {
-                alert("錯誤: " + err);
-            }
-        }
-
-        // --- 邏輯函數 ---
-
-        async function createTeam() {
-            showLoading();
-            const res = await callApi("create_team", {});
-            if (res.status === "success") {
-                enterContractPage(res.contractId);
+                document.getElementById('welcome').innerText = "嗨, " + profile.displayName;
             } else {
-                alert("建立失敗: " + res.message);
-                hideLoading();
+                liff.login(); // 引導登入
             }
         }
 
-        async function joinTeam(cid) {
-            showLoading();
-            const res = await callApi("join_team", { contractId: cid });
-            if (res.status === "success") {
-                enterContractPage(cid);
-            } else {
-                alert("無法加入: " + (res.message || "未知錯誤"));
-                showPage('view-landing');
-                hideLoading();
-            }
-        }
-
-        function enterContractPage(cid) {
-            currentContractId = cid;
-            document.getElementById('display-contract-id').innerText = cid;
-            showPage('view-contract');
-            
-            updateStatus();
-            pollingTimer = setInterval(updateStatus, 3000); // 3秒輪詢一次
-        }
-
-        async function updateStatus() {
-            const res = await callApi("get_status", { contractId: currentContractId });
-            if (res.status !== "success") return;
-
-            const members = res.members; // [UserA, UserB]
-            let iHaveSigned = false;
-            let partnerExists = false;
-
-            // 渲染 2 個位置
-            members.forEach((m, idx) => {
-                const slot = document.getElementById(`slot-${idx}`);
-                const nameTag = document.getElementById(`name-${idx}`);
-                const img = slot.querySelector('img');
-
-                if (m.exists) {
-                    img.src = m.pic || "https://placehold.co/70x70/png?text=" + m.name[0];
-                    img.style.opacity = m.signed ? "1" : "0.5";
-                    nameTag.innerText = m.name;
-                    
-                    if (m.signed) slot.classList.add('signed');
-                    else slot.classList.remove('signed');
-
-                    if (idx === 1) partnerExists = true; // B 存在
-                    if (m.name === userProfile.displayName && m.signed) iHaveSigned = true;
-                } else {
-                    img.src = "https://placehold.co/70x70/eee/ccc?text=?";
-                    nameTag.innerText = "等待夥伴...";
-                    slot.classList.remove('signed');
-                }
+        function sendTime(task) {
+            // 把結果傳回 LINE 對話框
+            liff.sendMessages([{
+                type: 'text',
+                text: "我開始進行：" + task
+            }]).then(() => {
+                liff.closeWindow(); // 傳送完自動關閉
             });
-
-            // UI 狀態控制
-            const statusTxt = document.getElementById('status-text');
-            const btnInvite = document.getElementById('btn-invite');
-            const fingerBtn = document.getElementById('my-finger-btn');
-            const waitMsg = document.getElementById('wait-msg');
-
-            // 1. 遊戲已開始
-            if (res.is_active) {
-                statusTxt.innerText = "✨ 契約已生效，準備進入森林 ✨";
-                statusTxt.style.color = "#4CAF50";
-                clearInterval(pollingTimer);
-                btnInvite.classList.add('hidden');
-                fingerBtn.classList.add('hidden');
-                waitMsg.classList.add('hidden');
-                setTimeout(() => alert("恭喜！雙人契約成立！(此處接續下一關)"), 1000);
-                return;
-            }
-
-            // 2. 夥伴還沒來
-            if (!partnerExists) {
-                statusTxt.innerText = "請分享邀請給 1 位夥伴";
-                btnInvite.classList.remove('hidden');
-                fingerBtn.classList.add('hidden');
-                waitMsg.classList.add('hidden');
-            } 
-            // 3. 夥伴來了，顯示簽名按鈕
-            else {
-                btnInvite.classList.add('hidden');
-                
-                if (!iHaveSigned) {
-                    statusTxt.innerText = "夥伴已就位，請長按指紋簽署";
-                    fingerBtn.classList.remove('hidden');
-                    waitMsg.classList.add('hidden');
-                } else {
-                    statusTxt.innerText = "等待對方簽署中...";
-                    fingerBtn.classList.add('hidden');
-                    waitMsg.classList.remove('hidden');
-                }
-            }
-            hideLoading();
         }
-
-        function shareInvite() {
-            if (liff.isApiAvailable('shareTargetPicker')) {
-                const link = `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`;
-                liff.shareTargetPicker([{
-                    "type": "flex",
-                    "altText": "羈絆之森遊戲邀請",
-                    "contents": {
-                        "type": "bubble",
-                        "body": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [
-                                { "type": "text", "text": "🌲 羈絆之森", "weight": "bold", "size": "xl", "color": "#4CAF50" },
-                                { "type": "text", "text": "邀請你成為我的契約夥伴！", "margin": "md" },
-                                { "type": "text", "text": "僅限兩人，缺一不可。", "size": "xs", "color": "#aaaaaa", "margin": "sm" }
-                            ]
-                        },
-                        "footer": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [{ "type": "button", "action": { "type": "uri", "label": "接受契約", "uri": link }, "style": "primary" }]
-                        }
-                    }
-                }]);
-            } else {
-                alert("請使用手機分享，或複製連結: " + `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`);
-            }
-        }
-
-        // 指紋長按
-        const fingerBtn = document.getElementById('my-finger-btn');
-        let pressTimer;
-        
-        const startPress = (e) => {
-            e.preventDefault();
-            fingerBtn.classList.add('pressing');
-            pressTimer = setTimeout(async () => {
-                document.getElementById('flash-overlay').style.animation = 'flash 0.5s';
-                showLoading();
-                await callApi("sign_oath", { contractId: currentContractId });
-                updateStatus();
-            }, 1500);
-        };
-        const cancelPress = () => {
-            fingerBtn.classList.remove('pressing');
-            clearTimeout(pressTimer);
-        };
-
-        fingerBtn.addEventListener('mousedown', startPress);
-        fingerBtn.addEventListener('touchstart', startPress);
-        fingerBtn.addEventListener('mouseup', cancelPress);
-        fingerBtn.addEventListener('touchend', cancelPress);
-
-        // API 工具
-        async function callApi(action, payload) {
-            const body = { action, userId: userProfile.userId, displayName: userProfile.displayName, pictureUrl: userProfile.pictureUrl, ...payload };
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST", mode: "cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify(body)
-                });
-                return await res.json();
-            } catch (e) { console.error(e); return { status: "error" }; }
-        }
-
-        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
-        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
-
+        main();
     </script>
 </body>
 </html>
