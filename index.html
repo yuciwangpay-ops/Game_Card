@@ -3,158 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>羈絆之森 | 風鈴物語</title>
+    <title>羈絆之森</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #4CAF50; --bg: #fcfbf5; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; overflow-y: auto; }
-        .page.active { display: flex; opacity: 1; }
-        .hidden { display: none !important; }
+        :root { --primary: #4CAF50; --btn-text: #fff; }
         
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #555; }
-        .spinner { width: 30px; height: 30px; border: 4px solid #ddd; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;}
-        
-        /* UI Components */
-        .btn { padding: 14px 30px; font-size: 16px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.95); }
-        .btn-create { background: var(--primary); }
-        .btn-invite { background: #2196F3; }
-        .btn-water { background: #03A9F4; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-
-        /* Contract Page */
-        .contract-paper { background: #fff8dc; border: 3px solid #8b4513; padding: 20px 10px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 90%; max-width: 400px; text-align: center; margin-top: 30px; position: relative; display: flex; flex-direction: column; align-items: center; }
-        .duo-container { display: flex; justify-content: space-around; align-items: center; width: 100%; margin: 30px 0; position: relative; }
-        .connector-line { position: absolute; top: 50%; left: 20%; width: 60%; height: 2px; background: #bcaaa4; z-index: 0; transform: translateY(-50%); border-top: 2px dashed #bcaaa4; background: transparent; }
-        .slot { width: 70px; height: 70px; border: 2px dashed #bcaaa4; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; z-index: 1; position: relative; transition: all 0.5s; }
-        .slot img { width: 100%; height: 100%; border-radius: 50%; opacity: 0.4; object-fit: cover; }
-        .slot.signed { border-color: var(--primary); box-shadow: 0 0 15px var(--primary); border-style: solid; }
-        .slot.signed img { opacity: 1; }
-        .name-tag { position: absolute; bottom: -25px; font-size: 12px; color: #666; width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #my-finger-btn { width: 80px; height: 80px; background: radial-gradient(circle, #ff5252 0%, #d32f2f 100%); border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 15px rgba(211,47,47,0.4); color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; margin-top: 20px; user-select: none; cursor: pointer; position: relative; animation: pulse 2s infinite; }
-        #my-finger-btn::after { content: "長按"; font-size: 14px; }
-        #my-finger-btn.pressing { transform: scale(0.9); animation: none; }
-
-        /* Game Page */
-        .tree-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding-bottom: 20px; position: relative; height: 300px;}
-        .tree { width: 200px; height: 200px; position: relative; }
-        .tree-img { width: 100%; height: 100%; object-fit: contain; }
-        
-        /* 風鈴樣式 */
-        .wind-chime {
-            position: absolute; top: 30%; right: 10%; width: 40px; height: 60px;
-            cursor: pointer; animation: swing 3s infinite ease-in-out; transform-origin: top center;
-            z-index: 10;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0; 
+            background: #000; /* 預設黑底 */
+            height: 100vh; overflow: hidden; 
         }
-        .chime-body { font-size: 30px; filter: drop-shadow(0 0 5px gold); }
-        .chime-dot { 
-            position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; 
-            background: red; border-radius: 50%; border: 2px solid white; display: none; /* 預設隱藏 */
+
+        /* --- 頁面容器設定 --- */
+        .page { 
+            display: none; width: 100%; height: 100%; 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            flex-direction: column; align-items: center; position: relative;
+        }
+        .page.active { display: flex; opacity: 1; }
+
+        /* 1. 首頁背景 */
+        #view-landing { background-image: url('./images/1_home.jpg'); justify-content: center; }
+        
+        /* 2. 契約頁背景 */
+        #view-contract { background-image: url('./images/2_contract.jpg'); padding-top: 60px; }
+        
+        /* 3. 遊戲頁背景 */
+        #view-game { background-image: url('./images/3_game.jpg'); justify-content: space-between; padding: 40px 0; }
+        
+        /* 4. 澆水頁背景 */
+        #view-watering { background-image: url('./images/4_water.jpg'); justify-content: center; }
+
+        /* --- UI 元件樣式 (CSS 代替圖片) --- */
+        
+        /* 通用按鈕 */
+        .css-btn {
+            padding: 12px 30px; font-size: 16px; font-weight: bold;
+            color: var(--btn-text); border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s; margin: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .css-btn:active { transform: scale(0.95); }
+        .btn-green { background: linear-gradient(135deg, #66bb6a, #43a047); }
+        .btn-blue { background: linear-gradient(135deg, #42a5f5, #1e88e5); }
+        .btn-gold { background: linear-gradient(135deg, #ffa726, #fb8c00); }
+
+        /* 玻璃質感面板 (讓文字在圖片上清楚顯示) */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 15px 25px; border-radius: 15px;
+            text-align: center; backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin: 10px; max-width: 85%;
+        }
+
+        /* 指紋感應區 (CSS 繪製) */
+        .finger-zone {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.6);
+            background: rgba(255, 68, 68, 0.2);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 40px; color: white; cursor: pointer;
+            animation: pulse 2s infinite; margin-top: 20px;
+            backdrop-filter: blur(2px);
+        }
+        .finger-zone::after { content: "👆"; }
+
+        /* 風鈴 (CSS + Emoji) */
+        .wind-chime {
+            position: absolute; top: 15%; right: 10%;
+            font-size: 50px; cursor: pointer; z-index: 10;
+            filter: drop-shadow(0 0 10px gold);
+            animation: swing 3s infinite ease-in-out;
+        }
+        .chime-dot {
+            position: absolute; top: 0; right: 0; width: 12px; height: 12px;
+            background: red; border-radius: 50%; border: 2px solid white;
+            display: none;
         }
         .chime-dot.active { display: block; }
 
-        /* 留言彈窗 */
+        /* 樹木 (Emoji 代替) */
+        .tree-emoji { font-size: 150px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); margin-bottom: 20px; transition: transform 0.3s; }
+
+        /* --- 5. 視窗樣式 (Modal) --- */
         #msg-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 2000; display: none;
             justify-content: center; align-items: center;
         }
         .msg-box {
-            background: #fff; width: 80%; max-width: 320px; padding: 20px; border-radius: 15px;
-            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;
+            width: 85%; max-width: 320px; min-height: 300px;
+            background-image: url('./images/5_window.jpg'); /* 視窗背景圖 */
+            background-size: 100% 100%;
+            padding: 30px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; color: #333; font-weight: bold;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        .msg-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
-        textarea { width: 90%; height: 80px; margin: 10px 0; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+        .msg-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; opacity: 0.6; }
 
-        .stats-bar { width: 90%; background: white; padding: 10px; border-radius: 15px; display: flex; justify-content: space-around; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; }
-        .stat-item { text-align: center; }
-        .stat-val { font-size: 18px; font-weight: bold; color: #4CAF50; }
-        .stat-label { font-size: 12px; color: #888; }
-
-        @keyframes swing { 0% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } 100% { transform: rotate(5deg); } }
-        @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
+        /* 動畫 */
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
+        @keyframes swing { 0% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(10deg); } }
         @keyframes grow { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
+
+        /* 載入中 */
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; display: flex; color:white; justify-content: center; align-items: center; flex-direction: column; }
+        .hidden { display: none !important; }
+        
+        /* 頭像框 */
+        .duo-container { display: flex; gap: 20px; margin-top: 20px; }
+        .slot { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px dashed #888; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .slot img { width: 100%; height: 100%; opacity: 0.5; }
+        .slot.signed { border: 3px solid #4CAF50; box-shadow: 0 0 15px #4CAF50; background: white; }
+        .slot.signed img { opacity: 1; }
+
     </style>
 </head>
 <body>
 
-    <div id="loading"><div class="spinner"></div><div>讀取中...</div></div>
-    <div class="effect-flash" id="flash-overlay"></div>
+    <div id="loading"><p>森林讀取中...</p></div>
 
     <div id="msg-modal">
-        <div class="msg-box" id="msg-read-view" style="display:none;">
-            <div class="msg-close" onclick="closeModal()">×</div>
-            <h3>🎐 來自夥伴的留言</h3>
-            <p id="msg-content" style="font-size: 18px; color: #555; margin: 20px 0;">...</p>
-            <button class="btn btn-create" onclick="closeModal()">收到了</button>
-        </div>
+        <div class="msg-box">
+            <div class="msg-close" onclick="closeModal()">✕</div>
+            
+            <div id="msg-read-mode" style="display:none; text-align:center;">
+                <div style="font-size:40px; margin-bottom:10px;">🎐</div>
+                <h3>夥伴的留言</h3>
+                <p id="msg-text-content" style="background:rgba(255,255,255,0.6); padding:10px; border-radius:10px; margin:15px 0;">...</p>
+                <button class="css-btn btn-green" onclick="closeModal()">收到了</button>
+            </div>
 
-        <div class="msg-box" id="msg-write-view" style="display:none;">
-            <div class="msg-close" onclick="closeModal()">×</div>
-            <h3>✍️ 寫信給夥伴</h3>
-            <textarea id="msg-input" placeholder="寫些鼓勵的話吧..."></textarea>
-            <button class="btn btn-create" onclick="sendMsg()">掛上風鈴</button>
+            <div id="msg-write-mode" style="display:none; text-align:center; width:100%;">
+                <h3>✍️ 寫信給夥伴</h3>
+                <textarea id="msg-input" style="width:100%; height:80px; margin:15px 0; border-radius:10px; padding:10px; border:1px solid #ccc;" placeholder="寫下你的心情..."></textarea>
+                <button class="css-btn btn-green" style="width:100%;" onclick="sendMsg()">掛上風鈴</button>
+            </div>
         </div>
     </div>
 
     <div id="view-landing" class="page">
-        <h1 style="color:#4a4a4a; margin-top: 40px;">🌲 羈絆之森</h1>
-        <div style="width:100%; text-align:center; margin-top:30px;">
-            <button class="btn btn-create" onclick="createTeam()">建立新契約</button>
-            <p id="invite-hint" style="font-size:12px; color:#999; margin-top:20px;">(若有邀請連結，請直接點擊連結進入)</p>
+        <div class="glass-panel" style="margin-top:-100px;">
+            <h1 style="color:#2e7d32; margin:0;">羈絆之森</h1>
+            <p style="color:#555;">雙人習慣養成遊戲</p>
+        </div>
+        <div style="position: absolute; bottom: 80px;">
+            <button class="css-btn btn-green" onclick="createTeam()">✨ 建立契約</button>
+            <p style="color:white; text-shadow:0 1px 3px black; font-size:12px; margin-top:10px; text-align:center;">(若有邀請連結，請直接點擊連結)</p>
         </div>
     </div>
 
     <div id="view-contract" class="page">
-        <h2 style="color:#5d4037;">共生契約書</h2>
-        <div class="contract-paper">
-            <div style="font-size:12px; color:#888;">契約編號</div>
-            <div id="display-contract-id" style="font-weight:bold; color:#8b4513; font-size:24px; letter-spacing: 2px;">...</div>
+        <div class="glass-panel">
+            <h2 style="margin:0; color:#5d4037;">共生契約書</h2>
+            <div style="font-size:12px; color:#888;">No. <span id="contract-id-display">...</span></div>
+            
             <div class="duo-container">
-                <div class="connector-line"></div>
-                <div class="slot" id="slot-0"><img src="" alt="A"><div class="name-tag" id="name-0">等待中...</div></div>
-                <div class="slot" id="slot-1"><img src="" alt="B"><div class="name-tag" id="name-1">等待中...</div></div>
+                <div class="slot" id="slot-0"><img src="" alt="A"></div>
+                <div class="slot" id="slot-1"><img src="" alt="B"></div>
             </div>
-            <p id="status-text" class="status-msg">讀取狀態中...</p>
+            <p id="status-text" style="color:#8b4513; font-size:14px; margin-top:15px;">讀取中...</p>
         </div>
-        <div id="action-area" style="margin-top:40px; text-align:center; width:100%;">
-            <button class="btn btn-invite hidden" id="btn-invite" onclick="shareInvite()">邀請夥伴 (+)</button>
-            <div id="my-finger-btn" class="hidden"></div>
-            <p id="wait-msg" class="hidden" style="color:#aaa;">您已簽署，等待對方中...</p>
+
+        <div style="margin-top: 30px;">
+            <button id="btn-invite" class="css-btn btn-blue hidden" onclick="shareInvite()">📩 邀請夥伴</button>
+            <div id="btn-finger" class="finger-zone hidden"></div>
         </div>
     </div>
 
     <div id="view-game" class="page">
-        <div class="stats-bar">
-            <div class="stat-item"><div class="stat-val" id="level-display">Lv.1</div><div class="stat-label">神木等級</div></div>
-            <div class="stat-item"><div class="stat-val" id="streak-display">0</div><div class="stat-label">連續天數</div></div>
+        <div class="glass-panel" style="padding: 10px 20px; margin-top: 20px;">
+            <span style="color:#4CAF50; font-weight:bold;">Lv.1</span> 神木 | 連續 <span id="streak-val" style="color:#f57c00; font-weight:bold;">0</span> 天
         </div>
 
-        <div class="tree-container">
-            <div class="tree" id="the-tree">
-                <div class="wind-chime" onclick="clickChime()">
-                    <div class="chime-body">🎐</div>
-                    <div class="chime-dot" id="chime-notification"></div>
-                </div>
-                <img src="https://cdn-icons-png.flaticon.com/512/4319/4319561.png" class="tree-img">
+        <div style="position:relative; width:100%; flex-grow:1; display:flex; justify-content:center; align-items:flex-end;">
+            <div class="wind-chime" onclick="openChime()">
+                🎐
+                <div class="chime-dot" id="chime-dot"></div>
             </div>
+            <div class="tree-emoji" id="main-tree">🌳</div>
         </div>
 
-        <div style="width:100%; text-align:center; margin-bottom: 40px;">
-            <button class="btn btn-water" onclick="waterTree()"><span>💧</span> 注入露水</button>
-            <p style="font-size:12px; color:#aaa; margin-top:10px;">點擊樹上風鈴與夥伴留言</p>
+        <div style="margin-bottom: 50px;">
+            <button class="css-btn btn-blue" onclick="triggerWatering()" style="font-size:20px; padding: 15px 40px;">
+                💧 注入能量
+            </button>
+        </div>
+    </div>
+
+    <div id="view-watering" class="page">
+        <div style="text-align:center;">
+            <div style="font-size:80px; filter:drop-shadow(0 0 30px gold); animation: grow 2s infinite;">✨🌳✨</div>
+            <h2 style="color:white; text-shadow:0 0 10px gold; margin-top:20px;">能量注入中...</h2>
         </div>
     </div>
 
     <script>
+        // 設定區
         const LIFF_ID = "2008942220-OJ5cm8o7"; 
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
 
         let userProfile = {};
         let currentContractId = "";
         let pollingTimer = null;
-        let hasUnreadMsg = false; // 紀錄是否有未讀訊息
+        let hasUnread = false;
+        let pendingMsg = "";
 
         window.onload = function() {
             liff.init({ liffId: LIFF_ID }).then(() => {
@@ -166,34 +223,35 @@
         async function startApp() {
             try {
                 const profile = await liff.getProfile();
-                userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl };
-                const urlParams = new URLSearchParams(window.location.search);
-                const inviteId = urlParams.get('contract_id');
+                userProfile = { userId: profile.userId, displayName: profile.displayName };
+                const params = new URLSearchParams(window.location.search);
+                const inviteId = params.get('contract_id');
+                
                 const loginData = await callApi("login", {});
                 
                 if (loginData.contractId) enterContractPage(loginData.contractId);
                 else if (inviteId) await joinTeam(inviteId);
                 else { showPage('view-landing'); hideLoading(); }
-            } catch (err) { alert("Error: " + err); hideLoading(); }
+            } catch (err) { alert(err); hideLoading(); }
         }
 
         async function createTeam() {
             showLoading();
             const res = await callApi("create_team", {});
             if (res.status === "success") enterContractPage(res.contractId);
-            else { alert("Failed: " + res.message); hideLoading(); }
+            else { alert("建立失敗"); hideLoading(); }
         }
 
         async function joinTeam(cid) {
             showLoading();
             const res = await callApi("join_team", { contractId: cid });
             if (res.status === "success") enterContractPage(cid);
-            else { alert("Failed: " + res.message); showPage('view-landing'); hideLoading(); }
+            else { alert("加入失敗"); showPage('view-landing'); hideLoading(); }
         }
 
         function enterContractPage(cid) {
             currentContractId = cid;
-            document.getElementById('display-contract-id').innerText = cid;
+            document.getElementById('contract-id-display').innerText = cid;
             showPage('view-contract');
             updateStatus();
             if (pollingTimer) clearInterval(pollingTimer);
@@ -211,46 +269,33 @@
             }
 
             const members = res.members;
-            let iHaveSigned = false;
-            let partnerExists = false;
-
-            members.forEach((m, idx) => {
-                const slot = document.getElementById(`slot-${idx}`);
-                const nameTag = document.getElementById(`name-${idx}`);
-                const img = slot.querySelector('img');
-
+            const mySlot = members.find(m => m.name === userProfile.displayName);
+            
+            members.forEach((m, i) => {
+                const img = document.querySelector(`#slot-${i} img`);
+                const slot = document.getElementById(`slot-${i}`);
                 if (m.exists) {
-                    img.src = m.pic || "https://placehold.co/70x70/png?text=" + (m.name[0] || "?");
-                    img.style.opacity = m.signed ? "1" : "0.5";
-                    nameTag.innerText = m.name;
-                    if (m.signed) slot.classList.add('signed');
-                    else slot.classList.remove('signed');
-
-                    if (idx === 1) partnerExists = true;
-                    if (m.name === userProfile.displayName && m.signed) iHaveSigned = true;
-                } else {
-                    img.src = "https://placehold.co/70x70/eee/ccc?text=?";
-                    nameTag.innerText = "等待夥伴...";
-                    slot.classList.remove('signed');
+                    img.src = m.pic || "https://placehold.co/60x60/png?text=" + m.name[0];
+                    if (m.signed) { slot.classList.add('signed'); img.style.opacity = 1; }
                 }
             });
 
             const btnInvite = document.getElementById('btn-invite');
-            const fingerBtn = document.getElementById('my-finger-btn');
-            const waitMsg = document.getElementById('wait-msg');
+            const btnFinger = document.getElementById('btn-finger');
+            const statusTxt = document.getElementById('status-text');
 
-            if (!partnerExists) {
+            if (members.length < 2 || !members[1].exists) {
                 btnInvite.classList.remove('hidden');
-                fingerBtn.classList.add('hidden');
-                waitMsg.classList.add('hidden');
+                btnFinger.classList.add('hidden');
+                statusTxt.innerText = "等待夥伴加入...";
             } else {
                 btnInvite.classList.add('hidden');
-                if (!iHaveSigned) {
-                    fingerBtn.classList.remove('hidden');
-                    waitMsg.classList.add('hidden');
+                if (mySlot && !mySlot.signed) {
+                    btnFinger.classList.remove('hidden');
+                    statusTxt.innerText = "請按壓指紋";
                 } else {
-                    fingerBtn.classList.add('hidden');
-                    waitMsg.classList.remove('hidden');
+                    btnFinger.classList.add('hidden');
+                    statusTxt.innerText = "等待對方簽署...";
                 }
             }
             hideLoading();
@@ -259,134 +304,95 @@
         function enterGamePage() {
             hideLoading();
             showPage('view-game');
-            // 進入遊戲後，檢查有沒有留言
-            checkIncomingMsg();
+            checkMsg();
         }
 
-        // --- 風鈴留言邏輯 ---
-        
-        // 1. 檢查是否有新留言
-        async function checkIncomingMsg() {
-            // 背景執行，不顯示 Loading
+        async function triggerWatering() {
+            showPage('view-watering');
+            setTimeout(() => {
+                showPage('view-game');
+                alert("獲得 +10 露水能量！");
+            }, 3000);
+        }
+
+        async function checkMsg() {
             const res = await callApi("get_comment", { contractId: currentContractId });
             if (res && res.has_msg) {
-                hasUnreadMsg = true;
-                document.getElementById('chime-notification').classList.add('active'); // 顯示紅點
-                // 暫存訊息內容以便顯示
-                window.pendingMsg = res.message; 
-            } else {
-                hasUnreadMsg = false;
-                document.getElementById('chime-notification').classList.remove('active');
+                hasUnread = true;
+                pendingMsg = res.message;
+                document.getElementById('chime-dot').classList.add('active');
             }
         }
 
-        // 2. 點擊風鈴
-        function clickChime() {
-            const modal = document.getElementById('msg-modal');
-            modal.style.display = 'flex';
-
-            if (hasUnreadMsg) {
-                // 讀取模式
-                document.getElementById('msg-read-view').style.display = 'block';
-                document.getElementById('msg-write-view').style.display = 'none';
-                document.getElementById('msg-content').innerText = window.pendingMsg || "（訊息載入錯誤）";
-                
-                // 點開就算已讀，移除紅點
-                hasUnreadMsg = false;
-                document.getElementById('chime-notification').classList.remove('active');
+        function openChime() {
+            document.getElementById('msg-modal').style.display = 'flex';
+            if (hasUnread) {
+                document.getElementById('msg-read-mode').style.display = 'block';
+                document.getElementById('msg-write-mode').style.display = 'none';
+                document.getElementById('msg-text-content').innerText = pendingMsg;
+                hasUnread = false;
+                document.getElementById('chime-dot').classList.remove('active');
             } else {
-                // 寫入模式
-                document.getElementById('msg-read-view').style.display = 'none';
-                document.getElementById('msg-write-view').style.display = 'block';
+                document.getElementById('msg-read-mode').style.display = 'none';
+                document.getElementById('msg-write-mode').style.display = 'block';
             }
         }
 
-        // 3. 發送留言
         async function sendMsg() {
             const txt = document.getElementById('msg-input').value;
-            if (!txt) return alert("請輸入內容");
-            
+            if(!txt) return;
             showLoading();
-            const res = await callApi("send_comment", { contractId: currentContractId, message: txt });
+            await callApi("send_comment", { contractId: currentContractId, message: txt });
             hideLoading();
-            
-            if (res.status === 'success') {
-                alert("留言已掛上風鈴！");
-                document.getElementById('msg-input').value = ""; // 清空
-                closeModal();
-            } else {
-                alert("發送失敗");
-            }
+            closeModal();
+            alert("留言已送出");
         }
 
-        function closeModal() {
-            document.getElementById('msg-modal').style.display = 'none';
-        }
+        function closeModal() { document.getElementById('msg-modal').style.display = 'none'; }
 
-        function waterTree() {
-            const tree = document.getElementById('the-tree');
-            tree.style.animation = 'grow 0.5s ease';
-            alert("澆水成功！(模擬)");
-            setTimeout(() => { tree.style.animation = ''; }, 500);
-        }
+        const fingerBtn = document.getElementById('btn-finger');
+        let timer;
+        fingerBtn.addEventListener('mousedown', startPress);
+        fingerBtn.addEventListener('touchstart', startPress);
+        fingerBtn.addEventListener('mouseup', endPress);
+        fingerBtn.addEventListener('touchend', endPress);
 
-        function shareInvite() {
-            if (liff.isApiAvailable('shareTargetPicker')) {
-                const link = `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`;
-                liff.shareTargetPicker([{
-                    "type": "flex",
-                    "altText": "羈絆之森邀請",
-                    "contents": {
-                        "type": "bubble",
-                        "body": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [
-                                { "type": "text", "text": "🌲 羈絆之森", "weight": "bold", "size": "xl", "color": "#4CAF50" },
-                                { "type": "text", "text": "邀請你成為我的契約夥伴！", "margin": "md" }
-                            ]
-                        },
-                        "footer": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [{ "type": "button", "action": { "type": "uri", "label": "接受契約", "uri": link }, "style": "primary" }]
-                        }
-                    }
-                }]);
-            } else { alert("Link: " + `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`); }
-        }
-
-        const fingerBtn = document.getElementById('my-finger-btn');
-        let pressTimer;
-        const startPress = (e) => {
+        function startPress(e) {
             e.preventDefault();
-            fingerBtn.classList.add('pressing');
-            pressTimer = setTimeout(async () => {
-                document.getElementById('flash-overlay').style.animation = 'flash 0.5s';
+            fingerBtn.style.transform = "scale(0.9)";
+            timer = setTimeout(async () => {
                 showLoading();
                 await callApi("sign_oath", { contractId: currentContractId });
                 updateStatus();
             }, 1000);
-        };
-        const cancelPress = () => { fingerBtn.classList.remove('pressing'); clearTimeout(pressTimer); };
-        fingerBtn.addEventListener('mousedown', startPress);
-        fingerBtn.addEventListener('touchstart', startPress);
-        fingerBtn.addEventListener('mouseup', cancelPress);
-        fingerBtn.addEventListener('touchend', cancelPress);
+        }
+        function endPress() {
+            clearTimeout(timer);
+            fingerBtn.style.transform = "scale(1)";
+        }
+        
+        function shareInvite() {
+             if (liff.isApiAvailable('shareTargetPicker')) {
+                liff.shareTargetPicker([{
+                    "type": "text",
+                    "text": `邀請你加入羈絆之森！契約連結：https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`
+                }]);
+            } else {
+                alert(`請複製: https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`);
+            }
+        }
 
         async function callApi(action, payload) {
-            const body = { action, userId: userProfile.userId, displayName: userProfile.displayName, pictureUrl: userProfile.pictureUrl, ...payload };
+            const body = { action, userId: userProfile.userId, displayName: userProfile.displayName, ...payload };
             try {
-                const res = await fetch(GAS_API_URL, {
-                    method: "POST", mode: "cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify(body)
-                });
+                const res = await fetch(GAS_API_URL, { method: "POST", mode: "cors", headers: {"Content-Type":"text/plain"}, body: JSON.stringify(body) });
                 return await res.json();
-            } catch (e) { return { status: "error", message: e.toString() }; }
+            } catch(e) { return { status: "error" }; }
         }
 
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
-        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+        function showLoading() { document.getElementById('loading').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading').style.display = 'none'; }
     </script>
 </body>
 </html>
