@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>羈絆之森 | 除錯模式</title>
+    <title>羈絆之森 | 遊戲主畫面</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary: #4CAF50; --bg: #fcfbf5; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         
+        /* 頁面切換控制 */
         .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; overflow-y: auto; }
         .page.active { display: flex; opacity: 1; }
         .hidden { display: none !important; }
@@ -22,7 +23,9 @@
         .btn:active { transform: scale(0.95); }
         .btn-create { background: var(--primary); }
         .btn-invite { background: #2196F3; }
+        .btn-water { background: #03A9F4; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
+        /* 契約頁樣式 */
         .contract-paper { background: #fff8dc; border: 3px solid #8b4513; padding: 20px 10px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 90%; max-width: 400px; text-align: center; margin-top: 30px; position: relative; display: flex; flex-direction: column; align-items: center; }
         .duo-container { display: flex; justify-content: space-around; align-items: center; width: 100%; margin: 30px 0; position: relative; }
         .connector-line { position: absolute; top: 50%; left: 20%; width: 60%; height: 2px; background: #bcaaa4; z-index: 0; transform: translateY(-50%); border-top: 2px dashed #bcaaa4; background: transparent; }
@@ -37,34 +40,35 @@
         #my-finger-btn::after { content: "長按"; font-size: 14px; }
         #my-finger-btn.pressing { transform: scale(0.9); animation: none; }
 
+        /* === 遊戲頁樣式 (新增) === */
+        .tree-container { flex-grow: 1; display: flex; justify-content: center; align-items: flex-end; width: 100%; padding-bottom: 20px; position: relative; }
+        .tree { width: 150px; height: 150px; background-size: contain; background-repeat: no-repeat; background-position: center bottom; transition: transform 0.5s; position: relative; }
+        /* 這裡先用 placeholder 圖片，請記得換成您 GitHub 的 ./images/tree.png */
+        .tree-img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .stats-bar { width: 90%; background: white; padding: 10px; border-radius: 15px; display: flex; justify-content: space-around; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; }
+        .stat-item { text-align: center; }
+        .stat-val { font-size: 18px; font-weight: bold; color: #4CAF50; }
+        .stat-label { font-size: 12px; color: #888; }
+
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
+        @keyframes grow { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
         
-        /* === 除錯面板樣式 === */
-        #debug-console {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 150px;
-            background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace; font-size: 11px;
-            overflow-y: scroll; padding: 10px; z-index: 9999; box-sizing: border-box;
-            border-top: 2px solid #0f0; display: block; /* 預設開啟 */
-        }
+        /* 除錯面板 */
+        #debug-console { position: fixed; bottom: 0; left: 0; width: 100%; height: 120px; background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace; font-size: 11px; overflow-y: scroll; padding: 10px; z-index: 9999; display: block; border-top: 2px solid #0f0; }
         .debug-line { margin-bottom: 2px; border-bottom: 1px solid #333; }
         .debug-err { color: #ff5555; font-weight: bold; }
-        #toggle-debug { position: fixed; bottom: 160px; right: 10px; z-index: 10000; font-size: 10px; opacity: 0.7; }
+        #toggle-debug { position: fixed; bottom: 130px; right: 10px; z-index: 10000; font-size: 10px; opacity: 0.7; }
     </style>
 </head>
 <body>
 
-    <div id="debug-console">
-        <div class="debug-line">系統啟動... 等待初始化</div>
-    </div>
-    <button id="toggle-debug" onclick="toggleDebug()">隱藏/顯示 Log</button>
-
-    <div id="loading">
-        <div class="spinner"></div>
-        <div>讀取中...</div>
-    </div>
+    <div id="debug-console"><div class="debug-line">系統啟動...</div></div>
+    <button id="toggle-debug" onclick="toggleDebug()">隱藏 Log</button>
+    <div id="loading"><div class="spinner"></div><div>讀取中...</div></div>
     <div class="effect-flash" id="flash-overlay"></div>
 
     <div id="view-landing" class="page">
@@ -81,16 +85,13 @@
         <div class="contract-paper">
             <div style="font-size:12px; color:#888;">契約編號</div>
             <div id="display-contract-id" style="font-weight:bold; color:#8b4513; font-size:24px; letter-spacing: 2px;">...</div>
-            
             <div class="duo-container">
                 <div class="connector-line"></div>
                 <div class="slot" id="slot-0"><img src="" alt="A"><div class="name-tag" id="name-0">等待中...</div></div>
                 <div class="slot" id="slot-1"><img src="" alt="B"><div class="name-tag" id="name-1">等待中...</div></div>
             </div>
-
             <p id="status-text" style="color:#888; font-size:14px;">讀取狀態中...</p>
         </div>
-
         <div id="action-area" style="margin-top:40px; text-align:center; width:100%;">
             <button class="btn btn-invite hidden" id="btn-invite" onclick="shareInvite()">邀請夥伴 (+)</button>
             <div id="my-finger-btn" class="hidden"></div>
@@ -98,9 +99,35 @@
         </div>
     </div>
 
+    <div id="view-game" class="page">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-val" id="level-display">Lv.1</div>
+                <div class="stat-label">神木等級</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val" id="streak-display">0</div>
+                <div class="stat-label">連續天數</div>
+            </div>
+        </div>
+
+        <div class="tree-container">
+            <div class="tree" id="the-tree">
+                <img src="https://cdn-icons-png.flaticon.com/512/4319/4319561.png" class="tree-img">
+            </div>
+        </div>
+
+        <div style="width:100%; text-align:center; margin-bottom: 40px;">
+            <button class="btn btn-water" onclick="waterTree()">
+                <span>💧</span> 注入露水 (打卡)
+            </button>
+            <p style="font-size:12px; color:#aaa; margin-top:10px;">每日限打卡一次</p>
+        </div>
+    </div>
+
     <script>
         // ==============================
-        // 設定區
+        // 您的設定
         // ==============================
         const LIFF_ID = "2008942220-OJ5cm8o7"; 
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
@@ -110,42 +137,27 @@
         let currentContractId = "";
         let pollingTimer = null;
 
-        // --- 除錯工具函數 ---
+        // 除錯工具
         function logToScreen(msg, type='info') {
             const consoleDiv = document.getElementById('debug-console');
             const line = document.createElement('div');
             line.className = 'debug-line ' + (type === 'error' ? 'debug-err' : '');
-            
-            // 加上時間戳
-            const time = new Date().toLocaleTimeString();
-            // 如果是物件，轉成字串方便閱讀
-            if (typeof msg === 'object') {
-                msg = JSON.stringify(msg);
-            }
-            line.innerText = `[${time}] ${msg}`;
-            
+            if (typeof msg === 'object') msg = JSON.stringify(msg);
+            line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             consoleDiv.appendChild(line);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight; // 自動捲動到底部
-            console.log(msg); // 還是印在瀏覽器 console 一份
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(msg);
         }
-
-        // 攔截全域錯誤
-        window.onerror = function(message, source, lineno, colno, error) {
-            logToScreen(`Global Error: ${message}`, 'error');
-        };
-
         function toggleDebug() {
             const el = document.getElementById('debug-console');
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
-        // --- 主程式 ---
+        // 初始化
         window.onload = function() {
-            logToScreen("HTML Loaded. Initializing LIFF...");
             liff.init({ liffId: LIFF_ID }).then(() => {
                 logToScreen("LIFF Init Success.");
                 if (!liff.isLoggedIn()) {
-                    logToScreen("User not logged in. Redirecting...");
                     liff.login();
                 } else {
                     startApp();
@@ -170,30 +182,26 @@
                 
                 if (loginData.contractId) {
                     logToScreen(`Found existing contract: ${loginData.contractId}`);
+                    // 這裡改為：先進入契約頁檢查狀態，若 Active 會自動跳轉
                     enterContractPage(loginData.contractId);
                 } else if (inviteId) {
-                    logToScreen(`Detected Invite ID: ${inviteId}`);
                     await joinTeam(inviteId);
                 } else {
-                    logToScreen("No contract found. Showing Landing Page.");
                     showPage('view-landing');
                     hideLoading();
                 }
             } catch (err) { 
                 logToScreen("startApp Error: " + err, 'error');
+                hideLoading();
             }
         }
 
         async function createTeam() {
             showLoading();
-            logToScreen("Creating Team...");
             const res = await callApi("create_team", {});
-            
             if (res.status === "success") {
-                logToScreen("Team Created: " + res.contractId);
                 enterContractPage(res.contractId);
             } else {
-                logToScreen("Create Failed: " + JSON.stringify(res), 'error');
                 alert("建立失敗: " + (res.message || "未知錯誤"));
                 hideLoading();
             }
@@ -201,14 +209,10 @@
 
         async function joinTeam(cid) {
             showLoading();
-            logToScreen("Joining Team: " + cid);
             const res = await callApi("join_team", { contractId: cid });
-            
             if (res.status === "success") {
-                logToScreen("Joined Success.");
                 enterContractPage(cid);
             } else {
-                logToScreen("Join Failed: " + res.message, 'error');
                 alert("無法加入: " + (res.message || "未知錯誤"));
                 showPage('view-landing');
                 hideLoading();
@@ -227,7 +231,6 @@
         }
 
         async function updateStatus() {
-            // logToScreen("Polling Status..."); // 避免洗版，這行先註解
             const res = await callApi("get_status", { contractId: currentContractId });
             
             if (res.status !== "success") {
@@ -235,11 +238,20 @@
                 return;
             }
 
-            // --- 關鍵除錯點 ---
-            const members = res.members;
-            const active = res.is_active;
-            // logToScreen(`Status: Active=${active}, Members=${members.length}`); 
+            // ★★★ 這裡就是修正的關鍵 ★★★
+            if (res.is_active) {
+                logToScreen(">>> GAME ACTIVE! Stopping polling.");
+                clearInterval(pollingTimer);
+                
+                // 1. 強制關閉 Loading (解決卡住問題)
+                hideLoading();
+                
+                // 2. 切換到遊戲主畫面
+                enterGamePage();
+                return;
+            }
 
+            const members = res.members;
             let iHaveSigned = false;
             let partnerExists = false;
 
@@ -252,15 +264,11 @@
                     img.src = m.pic || "https://placehold.co/70x70/png?text=" + (m.name[0] || "?");
                     img.style.opacity = m.signed ? "1" : "0.5";
                     nameTag.innerText = m.name;
-                    
                     if (m.signed) slot.classList.add('signed');
                     else slot.classList.remove('signed');
 
                     if (idx === 1) partnerExists = true;
                     if (m.name === userProfile.displayName && m.signed) iHaveSigned = true;
-                    
-                    // 細部狀態 Log
-                    // logToScreen(`Slot ${idx}: ${m.name}, Signed: ${m.signed}`);
                 } else {
                     img.src = "https://placehold.co/70x70/eee/ccc?text=?";
                     nameTag.innerText = "等待夥伴...";
@@ -273,23 +281,6 @@
             const fingerBtn = document.getElementById('my-finger-btn');
             const waitMsg = document.getElementById('wait-msg');
 
-            // 1. 遊戲開始
-            if (res.is_active) {
-                statusTxt.innerText = "✨ 契約已生效！ ✨";
-                statusTxt.style.color = "#4CAF50";
-                
-                logToScreen(">>> GAME ACTIVE! Stopping polling.");
-                clearInterval(pollingTimer);
-                
-                btnInvite.classList.add('hidden');
-                fingerBtn.classList.add('hidden');
-                waitMsg.classList.add('hidden');
-                
-                setTimeout(() => alert("恭喜！雙人契約成立！(這裡可以跳轉到下一頁)"), 500);
-                return;
-            }
-
-            // 2. 狀態顯示邏輯
             if (!partnerExists) {
                 statusTxt.innerText = "請分享邀請給 1 位夥伴";
                 btnInvite.classList.remove('hidden');
@@ -305,12 +296,27 @@
                     statusTxt.innerText = "等待對方簽署中...";
                     fingerBtn.classList.add('hidden');
                     waitMsg.classList.remove('hidden');
-                    
-                    // 如果一直卡在這裡，代表對方的 signed 是 false
-                    // logToScreen("Waiting for partner to sign...");
                 }
             }
             hideLoading();
+        }
+
+        // --- 新增：進入遊戲頁面 ---
+        function enterGamePage() {
+            showPage('view-game');
+            logToScreen("Entered Game Page.");
+            // 這裡未來可以呼叫後端 API 讀取樹的等級
+        }
+
+        // --- 新增：澆水功能 (前端模擬) ---
+        function waterTree() {
+            const tree = document.getElementById('the-tree');
+            tree.style.animation = 'grow 0.5s ease';
+            
+            // 這裡之後要換成 callApi('checkin')
+            alert("澆水成功！(這是模擬動畫)");
+            
+            setTimeout(() => { tree.style.animation = ''; }, 500);
         }
 
         function shareInvite() {
@@ -334,8 +340,7 @@
                             "contents": [{ "type": "button", "action": { "type": "uri", "label": "接受契約", "uri": link }, "style": "primary" }]
                         }
                     }
-                }]).then(() => logToScreen("Share picker opened."))
-                   .catch(err => logToScreen("Share failed: " + err, 'error'));
+                }]);
             } else {
                 alert("請複製連結: " + `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`);
             }
@@ -348,23 +353,20 @@
         const startPress = (e) => {
             e.preventDefault();
             fingerBtn.classList.add('pressing');
-            logToScreen("Finger Pressed...");
             
             pressTimer = setTimeout(async () => {
                 document.getElementById('flash-overlay').style.animation = 'flash 0.5s';
                 showLoading();
-                logToScreen("Signing Oath...");
                 
                 const res = await callApi("sign_oath", { contractId: currentContractId });
                 logToScreen("Sign Result: " + JSON.stringify(res));
                 
-                updateStatus();
+                updateStatus(); // 這裡會再檢查一次，應該就會觸發 Active 跳轉
             }, 1000);
         };
         const cancelPress = () => {
             fingerBtn.classList.remove('pressing');
             clearTimeout(pressTimer);
-            // logToScreen("Press Cancelled");
         };
 
         fingerBtn.addEventListener('mousedown', startPress);
@@ -372,7 +374,6 @@
         fingerBtn.addEventListener('mouseup', cancelPress);
         fingerBtn.addEventListener('touchend', cancelPress);
 
-        // API 呼叫器
         async function callApi(action, payload) {
             const body = { action, userId: userProfile.userId, displayName: userProfile.displayName, pictureUrl: userProfile.pictureUrl, ...payload };
             try {
@@ -381,8 +382,7 @@
                     headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify(body)
                 });
-                const json = await res.json();
-                return json;
+                return await res.json();
             } catch (e) { 
                 logToScreen("API FETCH ERROR: " + e, 'error');
                 return { status: "error", message: e.toString() }; 
