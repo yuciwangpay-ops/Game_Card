@@ -3,77 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>羈絆之森 | 遊戲主畫面</title>
+    <title>羈絆之森 | 風鈴物語</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary: #4CAF50; --bg: #fcfbf5; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        
-        /* 頁面切換控制 */
         .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 0.5s; overflow-y: auto; }
         .page.active { display: flex; opacity: 1; }
         .hidden { display: none !important; }
-
-        /* 載入遮罩 */
+        
         #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #555; }
         .spinner { width: 30px; height: 30px; border: 4px solid #ddd; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;}
-
-        /* UI 元件 */
+        
+        /* UI Components */
         .btn { padding: 14px 30px; font-size: 16px; border-radius: 30px; border: none; cursor: pointer; color: white; margin: 10px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn:active { transform: scale(0.95); }
         .btn-create { background: var(--primary); }
         .btn-invite { background: #2196F3; }
         .btn-water { background: #03A9F4; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
-        /* 契約頁樣式 */
+        /* Contract Page */
         .contract-paper { background: #fff8dc; border: 3px solid #8b4513; padding: 20px 10px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 90%; max-width: 400px; text-align: center; margin-top: 30px; position: relative; display: flex; flex-direction: column; align-items: center; }
         .duo-container { display: flex; justify-content: space-around; align-items: center; width: 100%; margin: 30px 0; position: relative; }
         .connector-line { position: absolute; top: 50%; left: 20%; width: 60%; height: 2px; background: #bcaaa4; z-index: 0; transform: translateY(-50%); border-top: 2px dashed #bcaaa4; background: transparent; }
-        
         .slot { width: 70px; height: 70px; border: 2px dashed #bcaaa4; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; z-index: 1; position: relative; transition: all 0.5s; }
         .slot img { width: 100%; height: 100%; border-radius: 50%; opacity: 0.4; object-fit: cover; }
         .slot.signed { border-color: var(--primary); box-shadow: 0 0 15px var(--primary); border-style: solid; }
         .slot.signed img { opacity: 1; }
         .name-tag { position: absolute; bottom: -25px; font-size: 12px; color: #666; width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
         #my-finger-btn { width: 80px; height: 80px; background: radial-gradient(circle, #ff5252 0%, #d32f2f 100%); border-radius: 50%; border: 4px solid white; box-shadow: 0 5px 15px rgba(211,47,47,0.4); color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; margin-top: 20px; user-select: none; cursor: pointer; position: relative; animation: pulse 2s infinite; }
         #my-finger-btn::after { content: "長按"; font-size: 14px; }
         #my-finger-btn.pressing { transform: scale(0.9); animation: none; }
 
-        /* === 遊戲頁樣式 (新增) === */
-        .tree-container { flex-grow: 1; display: flex; justify-content: center; align-items: flex-end; width: 100%; padding-bottom: 20px; position: relative; }
-        .tree { width: 150px; height: 150px; background-size: contain; background-repeat: no-repeat; background-position: center bottom; transition: transform 0.5s; position: relative; }
-        /* 這裡先用 placeholder 圖片，請記得換成您 GitHub 的 ./images/tree.png */
+        /* Game Page */
+        .tree-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; padding-bottom: 20px; position: relative; height: 300px;}
+        .tree { width: 200px; height: 200px; position: relative; }
         .tree-img { width: 100%; height: 100%; object-fit: contain; }
         
+        /* 風鈴樣式 */
+        .wind-chime {
+            position: absolute; top: 30%; right: 10%; width: 40px; height: 60px;
+            cursor: pointer; animation: swing 3s infinite ease-in-out; transform-origin: top center;
+            z-index: 10;
+        }
+        .chime-body { font-size: 30px; filter: drop-shadow(0 0 5px gold); }
+        .chime-dot { 
+            position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; 
+            background: red; border-radius: 50%; border: 2px solid white; display: none; /* 預設隱藏 */
+        }
+        .chime-dot.active { display: block; }
+
+        /* 留言彈窗 */
+        #msg-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000; display: none;
+            justify-content: center; align-items: center;
+        }
+        .msg-box {
+            background: #fff; width: 80%; max-width: 320px; padding: 20px; border-radius: 15px;
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;
+        }
+        .msg-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        textarea { width: 90%; height: 80px; margin: 10px 0; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+
         .stats-bar { width: 90%; background: white; padding: 10px; border-radius: 15px; display: flex; justify-content: space-around; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; }
         .stat-item { text-align: center; }
         .stat-val { font-size: 18px; font-weight: bold; color: #4CAF50; }
         .stat-label { font-size: 12px; color: #888; }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes swing { 0% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } 100% { transform: rotate(5deg); } }
         @keyframes flash { 0%{opacity:0;} 50%{opacity:1;} 100%{opacity:0;} }
         @keyframes grow { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .effect-flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; pointer-events: none; opacity: 0; z-index: 1000; }
-        
-        /* 除錯面板 */
-        #debug-console { position: fixed; bottom: 0; left: 0; width: 100%; height: 120px; background: rgba(0,0,0,0.85); color: #0f0; font-family: monospace; font-size: 11px; overflow-y: scroll; padding: 10px; z-index: 9999; display: block; border-top: 2px solid #0f0; }
-        .debug-line { margin-bottom: 2px; border-bottom: 1px solid #333; }
-        .debug-err { color: #ff5555; font-weight: bold; }
-        #toggle-debug { position: fixed; bottom: 130px; right: 10px; z-index: 10000; font-size: 10px; opacity: 0.7; }
     </style>
 </head>
 <body>
 
-    <div id="debug-console"><div class="debug-line">系統啟動...</div></div>
-    <button id="toggle-debug" onclick="toggleDebug()">隱藏 Log</button>
     <div id="loading"><div class="spinner"></div><div>讀取中...</div></div>
     <div class="effect-flash" id="flash-overlay"></div>
 
+    <div id="msg-modal">
+        <div class="msg-box" id="msg-read-view" style="display:none;">
+            <div class="msg-close" onclick="closeModal()">×</div>
+            <h3>🎐 來自夥伴的留言</h3>
+            <p id="msg-content" style="font-size: 18px; color: #555; margin: 20px 0;">...</p>
+            <button class="btn btn-create" onclick="closeModal()">收到了</button>
+        </div>
+
+        <div class="msg-box" id="msg-write-view" style="display:none;">
+            <div class="msg-close" onclick="closeModal()">×</div>
+            <h3>✍️ 寫信給夥伴</h3>
+            <textarea id="msg-input" placeholder="寫些鼓勵的話吧..."></textarea>
+            <button class="btn btn-create" onclick="sendMsg()">掛上風鈴</button>
+        </div>
+    </div>
+
     <div id="view-landing" class="page">
         <h1 style="color:#4a4a4a; margin-top: 40px;">🌲 羈絆之森</h1>
-        <p style="color:#666; text-align:center;">雙人習慣養成</p>
         <div style="width:100%; text-align:center; margin-top:30px;">
             <button class="btn btn-create" onclick="createTeam()">建立新契約</button>
             <p id="invite-hint" style="font-size:12px; color:#999; margin-top:20px;">(若有邀請連結，請直接點擊連結進入)</p>
@@ -81,7 +107,7 @@
     </div>
 
     <div id="view-contract" class="page">
-        <h2 style="color:#5d4037;">習慣契約書</h2>
+        <h2 style="color:#5d4037;">共生契約書</h2>
         <div class="contract-paper">
             <div style="font-size:12px; color:#888;">契約編號</div>
             <div id="display-contract-id" style="font-weight:bold; color:#8b4513; font-size:24px; letter-spacing: 2px;">...</div>
@@ -90,7 +116,7 @@
                 <div class="slot" id="slot-0"><img src="" alt="A"><div class="name-tag" id="name-0">等待中...</div></div>
                 <div class="slot" id="slot-1"><img src="" alt="B"><div class="name-tag" id="name-1">等待中...</div></div>
             </div>
-            <p id="status-text" style="color:#888; font-size:14px;">讀取狀態中...</p>
+            <p id="status-text" class="status-msg">讀取狀態中...</p>
         </div>
         <div id="action-area" style="margin-top:40px; text-align:center; width:100%;">
             <button class="btn btn-invite hidden" id="btn-invite" onclick="shareInvite()">邀請夥伴 (+)</button>
@@ -101,70 +127,39 @@
 
     <div id="view-game" class="page">
         <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-val" id="level-display">Lv.1</div>
-                <div class="stat-label">神木等級</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-val" id="streak-display">0</div>
-                <div class="stat-label">連續天數</div>
-            </div>
+            <div class="stat-item"><div class="stat-val" id="level-display">Lv.1</div><div class="stat-label">神木等級</div></div>
+            <div class="stat-item"><div class="stat-val" id="streak-display">0</div><div class="stat-label">連續天數</div></div>
         </div>
 
         <div class="tree-container">
             <div class="tree" id="the-tree">
+                <div class="wind-chime" onclick="clickChime()">
+                    <div class="chime-body">🎐</div>
+                    <div class="chime-dot" id="chime-notification"></div>
+                </div>
                 <img src="https://cdn-icons-png.flaticon.com/512/4319/4319561.png" class="tree-img">
             </div>
         </div>
 
         <div style="width:100%; text-align:center; margin-bottom: 40px;">
-            <button class="btn btn-water" onclick="waterTree()">
-                <span>💧</span> 注入露水 (打卡)
-            </button>
-            <p style="font-size:12px; color:#aaa; margin-top:10px;">每日限打卡一次</p>
+            <button class="btn btn-water" onclick="waterTree()"><span>💧</span> 注入露水</button>
+            <p style="font-size:12px; color:#aaa; margin-top:10px;">點擊樹上風鈴與夥伴留言</p>
         </div>
     </div>
 
     <script>
-        // ==============================
-        // 您的設定
-        // ==============================
         const LIFF_ID = "2008942220-OJ5cm8o7"; 
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx4FfKBfdxLPS4DEnHhMSvQIUy0fwe5OB97o9lEpmiu1qpLKULeGWcSMiVVwGIGnGUP/exec"; 
-        // ==============================
 
         let userProfile = {};
         let currentContractId = "";
         let pollingTimer = null;
+        let hasUnreadMsg = false; // 紀錄是否有未讀訊息
 
-        // 除錯工具
-        function logToScreen(msg, type='info') {
-            const consoleDiv = document.getElementById('debug-console');
-            const line = document.createElement('div');
-            line.className = 'debug-line ' + (type === 'error' ? 'debug-err' : '');
-            if (typeof msg === 'object') msg = JSON.stringify(msg);
-            line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            consoleDiv.appendChild(line);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-            console.log(msg);
-        }
-        function toggleDebug() {
-            const el = document.getElementById('debug-console');
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // 初始化
         window.onload = function() {
             liff.init({ liffId: LIFF_ID }).then(() => {
-                logToScreen("LIFF Init Success.");
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                } else {
-                    startApp();
-                }
-            }).catch(err => {
-                logToScreen("LIFF Init Failed: " + err, 'error');
-                hideLoading();
+                if (!liff.isLoggedIn()) liff.login();
+                else startApp();
             });
         };
 
@@ -172,59 +167,34 @@
             try {
                 const profile = await liff.getProfile();
                 userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl };
-                logToScreen(`Logged in as: ${userProfile.displayName}`);
-                
                 const urlParams = new URLSearchParams(window.location.search);
                 const inviteId = urlParams.get('contract_id');
-                
-                logToScreen("Calling Login API...");
                 const loginData = await callApi("login", {});
                 
-                if (loginData.contractId) {
-                    logToScreen(`Found existing contract: ${loginData.contractId}`);
-                    // 這裡改為：先進入契約頁檢查狀態，若 Active 會自動跳轉
-                    enterContractPage(loginData.contractId);
-                } else if (inviteId) {
-                    await joinTeam(inviteId);
-                } else {
-                    showPage('view-landing');
-                    hideLoading();
-                }
-            } catch (err) { 
-                logToScreen("startApp Error: " + err, 'error');
-                hideLoading();
-            }
+                if (loginData.contractId) enterContractPage(loginData.contractId);
+                else if (inviteId) await joinTeam(inviteId);
+                else { showPage('view-landing'); hideLoading(); }
+            } catch (err) { alert("Error: " + err); hideLoading(); }
         }
 
         async function createTeam() {
             showLoading();
             const res = await callApi("create_team", {});
-            if (res.status === "success") {
-                enterContractPage(res.contractId);
-            } else {
-                alert("建立失敗: " + (res.message || "未知錯誤"));
-                hideLoading();
-            }
+            if (res.status === "success") enterContractPage(res.contractId);
+            else { alert("Failed: " + res.message); hideLoading(); }
         }
 
         async function joinTeam(cid) {
             showLoading();
             const res = await callApi("join_team", { contractId: cid });
-            if (res.status === "success") {
-                enterContractPage(cid);
-            } else {
-                alert("無法加入: " + (res.message || "未知錯誤"));
-                showPage('view-landing');
-                hideLoading();
-            }
+            if (res.status === "success") enterContractPage(cid);
+            else { alert("Failed: " + res.message); showPage('view-landing'); hideLoading(); }
         }
 
         function enterContractPage(cid) {
             currentContractId = cid;
             document.getElementById('display-contract-id').innerText = cid;
             showPage('view-contract');
-            
-            logToScreen("Starting Polling...");
             updateStatus();
             if (pollingTimer) clearInterval(pollingTimer);
             pollingTimer = setInterval(updateStatus, 3000);
@@ -232,21 +202,10 @@
 
         async function updateStatus() {
             const res = await callApi("get_status", { contractId: currentContractId });
-            
-            if (res.status !== "success") {
-                logToScreen("Get Status Error: " + JSON.stringify(res), 'error');
-                return;
-            }
+            if (res.status !== "success") return;
 
-            // ★★★ 這裡就是修正的關鍵 ★★★
             if (res.is_active) {
-                logToScreen(">>> GAME ACTIVE! Stopping polling.");
                 clearInterval(pollingTimer);
-                
-                // 1. 強制關閉 Loading (解決卡住問題)
-                hideLoading();
-                
-                // 2. 切換到遊戲主畫面
                 enterGamePage();
                 return;
             }
@@ -276,24 +235,20 @@
                 }
             });
 
-            const statusTxt = document.getElementById('status-text');
             const btnInvite = document.getElementById('btn-invite');
             const fingerBtn = document.getElementById('my-finger-btn');
             const waitMsg = document.getElementById('wait-msg');
 
             if (!partnerExists) {
-                statusTxt.innerText = "請分享邀請給 1 位夥伴";
                 btnInvite.classList.remove('hidden');
                 fingerBtn.classList.add('hidden');
                 waitMsg.classList.add('hidden');
             } else {
                 btnInvite.classList.add('hidden');
                 if (!iHaveSigned) {
-                    statusTxt.innerText = "夥伴已就位，請長按指紋";
                     fingerBtn.classList.remove('hidden');
                     waitMsg.classList.add('hidden');
                 } else {
-                    statusTxt.innerText = "等待對方簽署中...";
                     fingerBtn.classList.add('hidden');
                     waitMsg.classList.remove('hidden');
                 }
@@ -301,21 +256,77 @@
             hideLoading();
         }
 
-        // --- 新增：進入遊戲頁面 ---
         function enterGamePage() {
+            hideLoading();
             showPage('view-game');
-            logToScreen("Entered Game Page.");
-            // 這裡未來可以呼叫後端 API 讀取樹的等級
+            // 進入遊戲後，檢查有沒有留言
+            checkIncomingMsg();
         }
 
-        // --- 新增：澆水功能 (前端模擬) ---
+        // --- 風鈴留言邏輯 ---
+        
+        // 1. 檢查是否有新留言
+        async function checkIncomingMsg() {
+            // 背景執行，不顯示 Loading
+            const res = await callApi("get_comment", { contractId: currentContractId });
+            if (res && res.has_msg) {
+                hasUnreadMsg = true;
+                document.getElementById('chime-notification').classList.add('active'); // 顯示紅點
+                // 暫存訊息內容以便顯示
+                window.pendingMsg = res.message; 
+            } else {
+                hasUnreadMsg = false;
+                document.getElementById('chime-notification').classList.remove('active');
+            }
+        }
+
+        // 2. 點擊風鈴
+        function clickChime() {
+            const modal = document.getElementById('msg-modal');
+            modal.style.display = 'flex';
+
+            if (hasUnreadMsg) {
+                // 讀取模式
+                document.getElementById('msg-read-view').style.display = 'block';
+                document.getElementById('msg-write-view').style.display = 'none';
+                document.getElementById('msg-content').innerText = window.pendingMsg || "（訊息載入錯誤）";
+                
+                // 點開就算已讀，移除紅點
+                hasUnreadMsg = false;
+                document.getElementById('chime-notification').classList.remove('active');
+            } else {
+                // 寫入模式
+                document.getElementById('msg-read-view').style.display = 'none';
+                document.getElementById('msg-write-view').style.display = 'block';
+            }
+        }
+
+        // 3. 發送留言
+        async function sendMsg() {
+            const txt = document.getElementById('msg-input').value;
+            if (!txt) return alert("請輸入內容");
+            
+            showLoading();
+            const res = await callApi("send_comment", { contractId: currentContractId, message: txt });
+            hideLoading();
+            
+            if (res.status === 'success') {
+                alert("留言已掛上風鈴！");
+                document.getElementById('msg-input').value = ""; // 清空
+                closeModal();
+            } else {
+                alert("發送失敗");
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('msg-modal').style.display = 'none';
+        }
+
         function waterTree() {
             const tree = document.getElementById('the-tree');
             tree.style.animation = 'grow 0.5s ease';
-            
-            // 這裡之後要換成 callApi('checkin')
-            alert("澆水成功！(這是模擬動畫)");
-            
+            alert("澆水成功！(模擬)");
             setTimeout(() => { tree.style.animation = ''; }, 500);
         }
 
@@ -324,15 +335,14 @@
                 const link = `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`;
                 liff.shareTargetPicker([{
                     "type": "flex",
-                    "altText": "羈絆之森遊戲邀請",
+                    "altText": "羈絆之森邀請",
                     "contents": {
                         "type": "bubble",
                         "body": {
                             "type": "box", "layout": "vertical",
                             "contents": [
                                 { "type": "text", "text": "🌲 羈絆之森", "weight": "bold", "size": "xl", "color": "#4CAF50" },
-                                { "type": "text", "text": "邀請你成為我的契約夥伴！", "margin": "md" },
-                                { "type": "text", "text": "僅限兩人，缺一不可。", "size": "xs", "color": "#aaaaaa", "margin": "sm" }
+                                { "type": "text", "text": "邀請你成為我的契約夥伴！", "margin": "md" }
                             ]
                         },
                         "footer": {
@@ -341,34 +351,22 @@
                         }
                     }
                 }]);
-            } else {
-                alert("請複製連結: " + `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`);
-            }
+            } else { alert("Link: " + `https://liff.line.me/${LIFF_ID}?contract_id=${currentContractId}`); }
         }
 
-        // 指紋邏輯
         const fingerBtn = document.getElementById('my-finger-btn');
         let pressTimer;
-        
         const startPress = (e) => {
             e.preventDefault();
             fingerBtn.classList.add('pressing');
-            
             pressTimer = setTimeout(async () => {
                 document.getElementById('flash-overlay').style.animation = 'flash 0.5s';
                 showLoading();
-                
-                const res = await callApi("sign_oath", { contractId: currentContractId });
-                logToScreen("Sign Result: " + JSON.stringify(res));
-                
-                updateStatus(); // 這裡會再檢查一次，應該就會觸發 Active 跳轉
+                await callApi("sign_oath", { contractId: currentContractId });
+                updateStatus();
             }, 1000);
         };
-        const cancelPress = () => {
-            fingerBtn.classList.remove('pressing');
-            clearTimeout(pressTimer);
-        };
-
+        const cancelPress = () => { fingerBtn.classList.remove('pressing'); clearTimeout(pressTimer); };
         fingerBtn.addEventListener('mousedown', startPress);
         fingerBtn.addEventListener('touchstart', startPress);
         fingerBtn.addEventListener('mouseup', cancelPress);
@@ -383,16 +381,12 @@
                     body: JSON.stringify(body)
                 });
                 return await res.json();
-            } catch (e) { 
-                logToScreen("API FETCH ERROR: " + e, 'error');
-                return { status: "error", message: e.toString() }; 
-            }
+            } catch (e) { return { status: "error", message: e.toString() }; }
         }
 
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
         function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
-
     </script>
 </body>
 </html>
