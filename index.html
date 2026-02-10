@@ -6,56 +6,40 @@
     <title>羈絆之森</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
+        /* ... (保留原本 v7.0 的 CSS，這裡只列出需要確認的部分) ... */
         :root { --primary: #4CAF50; --btn-text: #fff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #000; height: 100vh; overflow: hidden; }
         .page { display: none; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; flex-direction: column; align-items: center; position: relative; }
         .page.active { display: flex; opacity: 1; }
         .hidden { display: none !important; }
 
-        /* 背景圖 */
         #view-landing { background-image: url('./images/1_home.jpeg'); justify-content: center; }
         #view-contract { background-image: url('./images/2_contract.jpeg'); padding-top: 60px; }
         #view-game { background-image: url('./images/3_game.jpeg'); justify-content: space-between; padding: 40px 0; }
         #view-watering { background-image: url('./images/4_water.jpeg'); justify-content: center; }
         #view-alldone { background-image: url('./images/6_AllDone.jpeg'); justify-content: center; align-items: center; }
 
-        /* UI 元件 */
         .glass-panel { background: rgba(255, 255, 255, 0.9); padding: 10px 15px; border-radius: 15px; text-align: center; backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 10px; min-width: 280px; }
         .css-btn { padding: 12px 30px; font-size: 16px; font-weight: bold; color: var(--btn-text); border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-green { background: linear-gradient(135deg, #66bb6a, #43a047); }
         .btn-blue { background: linear-gradient(135deg, #42a5f5, #1e88e5); }
         .btn-gray { background: #9e9e9e; cursor: default; }
 
-        /* 遊戲物件 */
+        /* ... (其他 CSS 樣式保持不變，請複製之前的 CSS) ... */
         .tree-emoji { font-size: 150px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); margin-bottom: 20px; transition: transform 0.3s; }
         .wind-chime { position: absolute; top: 15%; right: 10%; font-size: 50px; cursor: pointer; z-index: 10; animation: swing 3s infinite ease-in-out; }
         .chime-dot { position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: red; border-radius: 50%; border: 2px solid white; display: none; }
         .chime-dot.active { display: block; }
-        
         .all-done-badge { position: absolute; top: 15%; left: 10%; font-size: 50px; cursor: pointer; z-index: 10; filter: drop-shadow(0 0 10px gold); animation: bounce 2s infinite; display: none; }
-
-        /* 全員達成文字動畫 */
         @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .celebrate-text {
-            font-size: 60px; color: #fff; font-weight: bold;
-            text-shadow: 0 0 20px #FFD700, 0 0 40px #FF4500;
-            animation: heartbeat 2s infinite ease-in-out;
-            margin-bottom: 200px; /* 往上推一點，避免擋住背景重點 */
-        }
-
-        /* 視窗 */
+        .celebrate-text { font-size: 60px; color: #fff; font-weight: bold; text-shadow: 0 0 20px #FFD700, 0 0 40px #FF4500; animation: heartbeat 2s infinite ease-in-out; margin-bottom: 200px; }
         #msg-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; justify-content: center; align-items: center; }
         .msg-box { width: 85%; max-width: 320px; min-height: 300px; background-image: url('./images/5_window.jpeg'); background-size: 100% 100%; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; color: #333; font-weight: bold; }
         .msg-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; opacity: 0.6; }
-
-        /* 動畫 */
         @keyframes swing { 0% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(10deg); } }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes grow { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        
         #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('./images/1_home.jpeg') no-repeat center center; background-size: cover; backdrop-filter: blur(8px); z-index: 3000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
-
-        /* 頭像與指紋 */
         .duo-container { display: flex; gap: 20px; margin-top: 20px; }
         .slot { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.5); border: 2px dashed #888; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .slot img { width: 100%; height: 100%; opacity: 0.5; }
@@ -108,7 +92,10 @@
             </div>
             <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px solid #ddd; padding-top:5px;">
                 <span>⚡ 能量: <span id="energy-val" style="color:#9c27b0; font-weight:bold;">0</span></span>
-                <span style="color:#666;">剩餘: <span id="daily-count-val" style="color:blue; font-weight:bold;">2</span> 次</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; padding-top:5px; color:#555;">
+                <span>我的水瓶: <span id="my-quota-val" style="color:blue; font-weight:bold;">0</span></span>
+                <span>團隊缺水: <span id="team-lack-val" style="color:red; font-weight:bold;">2</span></span>
             </div>
         </div>
 
@@ -177,7 +164,7 @@
             const res = await callApi("get_status", { contractId: currentContractId });
             if (res.status !== "success") return;
             if (res.is_active) { clearInterval(pollingTimer); enterGamePage(res.game_data); return; }
-
+            // ... (處理簽署畫面，同前版) ...
             const members = res.members;
             const mySlot = members.find(m => m.name === userProfile.displayName);
             members.forEach((m, i) => {
@@ -208,11 +195,13 @@
 
         function updateGameUI(data) {
             gameData = data;
-            // 3. 更新資訊欄
             document.getElementById('level-val').innerText = "Lv." + data.lv;
             document.getElementById('streak-val').innerText = data.combo;
-            document.getElementById('daily-count-val').innerText = data.daily_count;
-            document.getElementById('energy-val').innerText = data.energy; // 新增
+            document.getElementById('energy-val').innerText = data.energy;
+            
+            // 顯示 團隊剩餘 (Count) 與 個人額度 (Quota)
+            document.getElementById('team-lack-val').innerText = data.daily_count;
+            document.getElementById('my-quota-val').innerText = data.user_quota;
 
             let emojiIndex = data.lv;
             if(emojiIndex >= TREE_EMOJIS.length) emojiIndex = TREE_EMOJIS.length - 1;
@@ -221,29 +210,24 @@
             const btnWater = document.getElementById('btn-water-action');
             const badge = document.getElementById('all-done-badge');
             
-            // 2. 只有點擊 Badge 才會顯示 All Done 圖片
-            if (data.is_all_done) {
-                badge.style.display = "block"; 
-            } else {
-                badge.style.display = "none";
-            }
+            if (data.is_all_done) badge.style.display = "block"; 
+            else badge.style.display = "none";
 
-            // 1. Quota 判斷按鈕狀態
-            if (data.my_quota_used || data.is_all_done) {
-                btnWater.className = "css-btn btn-gray"; // 變灰
-                btnWater.innerText = data.is_all_done ? "明日再來" : "已澆過水";
-            } else {
+            // 按鈕狀態：只要我還有額度 (Quota > 0)，就可以按
+            if (data.user_quota > 0) {
                 btnWater.className = "css-btn btn-blue";
                 btnWater.innerText = "💧 注入能量";
+                btnWater.disabled = false;
+            } else {
+                // 額度用完
+                btnWater.className = "css-btn btn-gray";
+                btnWater.innerText = "水瓶已空";
+                btnWater.disabled = true;
             }
         }
 
         async function triggerWatering() {
-            // 前端先擋 Quota
-            if(gameData.my_quota_used || gameData.is_all_done) {
-                alert("今天已經完成任務囉！");
-                return;
-            }
+            if(gameData.user_quota <= 0) { alert("沒水了！"); return; }
             
             showPage('view-watering');
             const res = await callApi("water_tree", { contractId: currentContractId });
@@ -257,7 +241,7 @@
                         daily_count: res.daily_count,
                         combo: res.combo,
                         is_all_done: res.is_all_done,
-                        my_quota_used: true // 澆水成功後，我也不能再澆了
+                        user_quota: res.user_quota // 更新剩餘額度
                     });
                     if(res.message) alert(res.message);
                 } else {
